@@ -26,7 +26,10 @@ def parse_args():
 
 
 def report_progress(count, size, filesize):
-    print(f"Downloaded {count * size * 1.0 / (1024 * 1024.0):.2f}MB / {filesize / (1024 * 1024.0):.2f}MB...", end='\r')
+    total = filesize / (1024 * 1024.0)
+    current = count * size * 1.0 / (1024 * 1024.0)
+    current = min(current, total)
+    print(f"Downloaded {current:.2f}MB / {total:.2f}MB...", end='\r')
 
 
 def download_renode(path):
