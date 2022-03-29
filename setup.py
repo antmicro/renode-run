@@ -15,7 +15,7 @@ setup(
     url='antmicro.com',
     packages=['renode_run'],
     install_requires=[
-        'dts2repl @ git+ssh://git@github.com/antmicro/dts2repl@main#egg=dts2repl',
+        'dts2repl @ git+https://github.com/antmicro/dts2repl@main#egg=dts2repl',
     ],
     entry_points={
         'console_scripts': [
