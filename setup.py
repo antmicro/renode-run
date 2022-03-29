@@ -19,7 +19,7 @@ setup(
 ],
     entry_points={
         'console_scripts': [
-            'renode-run=renode_run.renode_run:main',
+            'renode-run=renode_run.__main__:main',
         ]},
     classifiers=[
         'Environment :: Console',
