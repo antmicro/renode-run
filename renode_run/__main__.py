@@ -9,8 +9,8 @@ renode_config = Path.home() / ".config" / "renode"
 renode_target_dir = renode_config / "renode-run.download"
 renode_run_config = renode_config / "renode-run.path"
 
-def parse_args():
 
+def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(title="commands", dest="command")
@@ -24,8 +24,10 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
 def report_progress(count, size, filesize):
     print(f"Downloaded {count * size * 1.0 / (1024 * 1024.0):.2f}MB / {filesize / (1024 * 1024.0):.2f}MB...", end='\r')
+
 
 def download_renode(path):
     if not sys.platform.startswith('linux'):
@@ -65,9 +67,9 @@ def get_renode(try_to_download=True):
             renode_path = Path(config.read()) / "renode"
             if Path.exists(renode_path):
                 print(f"Renode found in {renode_path}")
-                return str(renode_path) # returning str to match the result of `which`
+                return str(renode_path)  # returning str to match the result of `which`
             else:
-                print(f"Renode-run download listed in {renode_run_config}, but the target directory {renode_path} was not found. Looking in $PATH")
+                print(f"Renode-run download listed in {renode_run_config}, but the target directory {renode_path} was not found. Looking in $PATH...")
 
     from shutil import which
     renode_path = which("renode")
@@ -96,13 +98,13 @@ def generate_script(binary, platform, generate_repl):
     repl = f"{dashboard_link}/{platform}.repl"
     if generate_repl:
         import urllib.request
-        urllib.request.urlretrieve(f"{dashboard_link}/{platform}.dts", platform+".dts")
-        with open(platform+".repl", 'w') as f:
+        urllib.request.urlretrieve(f"{dashboard_link}/{platform}.dts", platform + ".dts")
+        with open(platform + ".repl", 'w') as repl_file:
             from argparse import Namespace
             fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts")
             import dts2repl
-            f.write(dts2repl.main(fake_args))
-        repl = platform+".repl"
+            repl_file.write(dts2repl.main(fake_args))
+        repl = platform + ".repl"
 
     script = f'''
 
@@ -141,9 +143,10 @@ runMacro $reset
 echo "Use 'start' to run the demo"'''
     return script
 
-def main():
 
-    import json, requests
+def main():
+    import json
+    import requests
 
     url = requests.get(f"{dashboard_link}/results-shell_module_all.json", "results.json")
     results = json.loads(url.text)
@@ -171,7 +174,7 @@ def main():
         if args.platform not in boards:
             print(f'Platform "{args.platform}" not in Zephyr platforms list on server.')
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
-            print(f'Choose one of the platforms listed above and try again.')
+            print('Choose one of the platforms listed above and try again.')
             sys.exit(1)
 
         script = generate_script(args.binary, args.platform, args.generate_repl)
@@ -180,6 +183,7 @@ def main():
             temp.write(script.encode("utf-8"))
             temp.flush()
             subprocess.run(f"{renode_path} {temp.name}".split())
+
 
 if __name__ == "__main__":
     main()
