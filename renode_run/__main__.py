@@ -57,7 +57,7 @@ def download_renode(path):
         os.remove(renode_package)
 
 
-def get_renode():
+def get_renode(try_to_download=True):
     # First, we try ~/.config/renode, then we look in $PATH
     renode_path = None
     if Path.exists(renode_run_config):
@@ -73,7 +73,13 @@ def get_renode():
     renode_path = which("renode")
 
     if renode_path is None:
-        print('Renode not found. Please download Renode with "renode-run download" or visit https://builds.renode.io')
+        if try_to_download:
+            print('Renode not found. Downloading...')
+            download_renode(renode_target_dir)
+            return get_renode(False)
+        else:
+            print("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
+
     else:
         print(f"Renode found in $PATH: {renode_path}. If you want to use the latest Renode version, consider running 'renode-run download'")
 
@@ -148,6 +154,8 @@ def main():
 
     if len(sys.argv) == 1:
         renode_path = get_renode()
+        if renode_path is None:
+            sys.exit(1)
         subprocess.run(renode_path)
         return
 
