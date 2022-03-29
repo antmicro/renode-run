@@ -137,7 +137,8 @@ macro reset
     sysbus LoadELF @{binary}
 """
 
-runMacro $reset'''
+runMacro $reset
+echo "Use 'start' to run the demo"'''
     return script
 
 def main():
