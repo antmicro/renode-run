@@ -104,9 +104,9 @@ def generate_script(binary, platform, generate_repl):
         urllib.request.urlretrieve(f"{dashboard_link}/{platform}.dts", platform + ".dts")
         with open(platform + ".repl", 'w') as repl_file:
             from argparse import Namespace
-            fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts")
-            import dts2repl
-            repl_file.write(dts2repl.main(fake_args))
+            fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts", overlays = "")
+            from dts2repl import dts2repl
+            repl_file.write(dts2repl.generate(fake_args))
         repl = platform + ".repl"
 
     script = f'''
