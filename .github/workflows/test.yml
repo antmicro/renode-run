@@ -1,0 +1,25 @@
+name: Renode-run test
+on:
+  push:
+  schedule:
+    - cron: '0 23 * * *' # run daily at 23:00 (UTC)
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+
+      - name: Install prerequisites
+        run: |
+          sudo apt update -y
+          sudo apt install -y python3 python3-pip
+
+      - name: Install renode-run
+        run: python3 -m pip install .
+
+      - name: Run renode-run
+        run: |
+          renode-run --help
+          renode-run download
