@@ -46,6 +46,12 @@ def download_renode(path):
 
     target_dir = Path(path)
     os.makedirs(target_dir, exist_ok=True)
+
+    # We have to always create directories for config files
+    # as 'path' can be given by user, and thus creating
+    # directories only for it is not sufficient.
+    config_dir = Path(renode_config)
+    os.makedirs(config_dir, exist_ok=True)
     try:
         with tarfile.open(renode_package) as tar:
             renode_version = tar.members[0].name
