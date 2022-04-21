@@ -21,6 +21,8 @@ def parse_args():
     demo_subparser.add_argument('-b', '--board', dest='board', required=True, help=f"board name, as listed on {dashboard_link}")
     demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="whether to generate the repl from dts")
     demo_subparser.add_argument('binary', help="binary name, either local or remote")
+    demo_subparser.add_argument('renode_arguments', default=[], nargs=argparse.REMAINDER, help="additional Renode arguments")
+    
     args = parser.parse_args()
     return args
 
@@ -185,7 +187,7 @@ def main():
         with tempfile.NamedTemporaryFile() as temp:
             temp.write(script.encode("utf-8"))
             temp.flush()
-            subprocess.run(f"{renode_path} {temp.name}".split())
+            subprocess.run([renode_path, temp.name] + args.renode_arguments)
 
 
 if __name__ == "__main__":
