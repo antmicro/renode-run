@@ -14,13 +14,13 @@ def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(title="commands", dest="command")
-    dl_subparser = subparsers.add_parser("download", help="Download Renode portable (Linux only!)")
-    dl_subparser.add_argument('-p', '--path', dest='path', default=str(renode_target_dir), help="Path for Renode download")
+    dl_subparser = subparsers.add_parser("download", help="download Renode portable (Linux only!)")
+    dl_subparser.add_argument('-p', '--path', dest='path', default=str(renode_target_dir), help="path for Renode download")
 
-    demo_subparser = subparsers.add_parser("demo", help="Run a demo from precompiled binaries")
     demo_subparser.add_argument('-b', '--binary', dest='binary', default="shell_module", help="Binary name, either local of remote")
-    demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="Whether to generate the repl from dts")
     demo_subparser.add_argument('platform', help="Platform name")
+    demo_subparser = subparsers.add_parser("demo", help="run a demo from precompiled binaries")
+    demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="whether to generate the repl from dts")
     args = parser.parse_args()
     return args
 
