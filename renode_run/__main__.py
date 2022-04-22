@@ -17,10 +17,10 @@ def parse_args():
     dl_subparser = subparsers.add_parser("download", help="download Renode portable (Linux only!)")
     dl_subparser.add_argument('-p', '--path', dest='path', default=str(renode_target_dir), help="path for Renode download")
 
-    demo_subparser.add_argument('-b', '--binary', dest='binary', default="shell_module", help="Binary name, either local of remote")
-    demo_subparser.add_argument('platform', help="Platform name")
     demo_subparser = subparsers.add_parser("demo", help="run a demo from precompiled binaries")
+    demo_subparser.add_argument('-b', '--board', dest='board', required=True, help=f"board name, as listed on {dashboard_link}")
     demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="whether to generate the repl from dts")
+    demo_subparser.add_argument('binary', help="binary name, either local or remote")
     args = parser.parse_args()
     return args
 
@@ -174,13 +174,13 @@ def main():
         renode_path = get_renode()
         if renode_path is None:
             sys.exit(1)
-        if args.platform not in boards:
-            print(f'Platform "{args.platform}" not in Zephyr platforms list on server.')
+        if args.board not in boards:
+            print(f'Platform "{args.board}" not in Zephyr platforms list on server.')
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
             print('Choose one of the platforms listed above and try again.')
             sys.exit(1)
 
-        script = generate_script(args.binary, args.platform, args.generate_repl)
+        script = generate_script(args.binary, args.board, args.generate_repl)
 
         with tempfile.NamedTemporaryFile() as temp:
             temp.write(script.encode("utf-8"))
