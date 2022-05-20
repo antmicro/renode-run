@@ -2,6 +2,7 @@
 
 import os
 import sys
+import venv
 from pathlib import Path
 
 dashboard_link = "https://zephyr-dashboard.renode.io"
@@ -9,6 +10,29 @@ default_renode_artifacts_dir = Path.home() / ".config" / "renode"
 
 renode_target_dirname = "renode-run.download"
 renode_run_config_filename = "renode-run.path"
+renode_test_venv_dirname = "renode-run.venv"
+
+
+class EnvBuilderWithRequirements(venv.EnvBuilder):
+    def __init__(self, *args, **kwargs):
+        self.requirements_path = kwargs.pop('requirements_path', None)
+        kwargs['with_pip'] = True
+        super().__init__(*args, **kwargs)
+
+    def post_setup(self, context):
+        if self.requirements_path is None:
+            return
+
+        import subprocess
+
+        args = [context.env_exe, '-m', 'pip', 'install', '-r', self.requirements_path]
+        env = os.environ
+        env['VIRTUAL_ENV'] = context.env_dir
+
+        try:
+            subprocess.check_call(args, env=env)
+        except subprocess.CalledProcessError as err:
+            print(f'Could not install given requirements: {err}')
 
 
 def parse_args():
@@ -26,6 +50,10 @@ def parse_args():
 
     exec_subparser = subparsers.add_parser("exec", help="execute Renode with arguments")
     exec_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
+
+    test_subparser = subparsers.add_parser("test", help="execute renode-test with arguments")
+    test_subparser.add_argument('--venv', dest='venv_path', help='path for virtualenv used by renode-test')
+    test_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
 
     demo_subparser = subparsers.add_parser("demo", help="run a demo from precompiled binaries")
     demo_subparser.add_argument('-b', '--board', dest='board', required=True, help=f"board name, as listed on {dashboard_link}")
@@ -219,22 +247,40 @@ def exec_command(args):
     subprocess.run([renode] + renode_args)
 
 
+def test_command(args):
+    renode = get_renode(args.artifacts_path)
+    if renode is None:
+        sys.exit(1)
+
+    renode_dir = Path(renode).parent
+    renode_test = renode_dir / 'renode-test'
+    if not Path.exists(renode_test):
+        print(f'Found Renode binary in {renode_dir}, but renode-test is missing; corrupted pacakge?')
+        sys.exit(1)
+
+    import subprocess
+    import venv
+
+    if args.venv_path is not None:
+        venv_path = Path(args.venv_path)
     else:
-        renode_path = get_renode()
-        if renode_path is None:
-            sys.exit(1)
-        if args.board not in boards:
-            print(f'Platform "{args.board}" not in Zephyr platforms list on server.')
-            print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
-            print('Choose one of the platforms listed above and try again.')
-            sys.exit(1)
+        venv_path = Path(args.artifacts_path) / renode_test_venv_dirname
 
-        script = generate_script(args.binary, args.board, args.generate_repl)
+    python_bin = venv_path / 'bin'
+    python_path = python_bin / 'python'
+    if not Path.exists(python_path):
+        print(f'Bootstraping new virtual env in {venv_path}')
+        requirements_path = renode_dir / 'tests' / 'requirements.txt'
+        env_builder = EnvBuilderWithRequirements(clear=True, requirements_path=requirements_path)
+        env_builder.create(venv_path)
+    else:
+        print(f'Found python in {python_bin}')
 
-        with tempfile.NamedTemporaryFile() as temp:
-            temp.write(script.encode("utf-8"))
-            temp.flush()
-            subprocess.run([renode_path, temp.name] + args.renode_arguments)
+    env = os.environ
+    env['PATH'] = f'{python_bin}:' + (env['PATH'] or '')
+
+    renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
+    subprocess.run([renode_test] + renode_args, env=env)
 
 
 def main():
@@ -243,6 +289,7 @@ def main():
         'download': download_command,
         'demo': demo_command,
         'exec': exec_command,
+        'test': test_command,
         None: exec_command,
     })[args.command](args)
 
