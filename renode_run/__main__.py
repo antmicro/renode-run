@@ -47,6 +47,7 @@ def parse_args():
 
     dl_subparser = subparsers.add_parser("download", help="download Renode portable (Linux only!)")
     dl_subparser.add_argument('-p', '--path', dest='path', default=None, help="path for Renode download")
+    dl_subparser.add_argument('-d', '--direct', dest='direct', action='store_true', help="do not create additional directories with Renode version")
 
     exec_subparser = subparsers.add_parser("exec", help="execute Renode with arguments")
     exec_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
@@ -81,7 +82,7 @@ def report_progress(count, size, filesize):
     print(f"Downloaded {current:.2f}MB / {total:.2f}MB...", end='\r')
 
 
-def download_renode(target_dir_path, config_path):
+def download_renode(target_dir_path, config_path, direct=False):
     if not sys.platform.startswith('linux'):
         raise Exception("Renode can only be automatically downloaded on Linux. On other OSes please visit https://builds.renode.io and install the latest package for your system.")
 
@@ -97,12 +98,29 @@ def download_renode(target_dir_path, config_path):
     os.makedirs(target_dir, exist_ok=True)
     try:
         with tarfile.open(renode_package) as tar:
-            renode_version = tar.members[0].name
-            final_path = target_dir / renode_version
-            if Path.exists(final_path):
-                print(f"Renode {renode_version} is already available in {target_dir}, keeping the previous version")
-                return
-            tar.extractall(target_dir)
+            if direct:
+                # When --direct argument is passed, we would like to
+                # extract contents of the archive directly to path given by user,
+                # and not into new directory. Therefore we iterate over all files (paths)
+                # in archive, and strip them from the first part, which is renode_<version>
+                # directory.
+                final_path = target_dir
+                renode_bin_path = final_path / 'renode'
+                if Path.exists(renode_bin_path):
+                    print(f"Renode is already present in {target_dir}")
+                    return
+                members = tar.getmembers()
+                for member in members:
+                    old_member_path = Path(member.path).parts[1:]
+                    member.path = Path(*old_member_path)
+                tar.extractall(target_dir, members=members)
+            else:
+                renode_version = tar.members[0].name
+                final_path = target_dir / renode_version
+                if Path.exists(final_path):
+                    print(f"Renode {renode_version} is already available in {target_dir}, keeping the previous version")
+                    return
+                tar.extractall(target_dir)
             print(f"Renode stored in {final_path}")
 
         with open(config_path, mode="w") as config:
@@ -204,7 +222,7 @@ def download_command(args):
     target_dir_path = args.path
     if target_dir_path is None:
         target_dir_path = Path(args.artifacts_path) / renode_target_dirname
-    download_renode(target_dir_path, renode_run_config_path)
+    download_renode(target_dir_path, renode_run_config_path, args.direct)
 
 
 def demo_command(args):
