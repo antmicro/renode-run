@@ -48,6 +48,7 @@ def parse_args():
     dl_subparser = subparsers.add_parser("download", help="download Renode portable (Linux only!)")
     dl_subparser.add_argument('-p', '--path', dest='path', default=None, help="path for Renode download")
     dl_subparser.add_argument('-d', '--direct', dest='direct', action='store_true', help="do not create additional directories with Renode version")
+    dl_subparser.add_argument('version', default='latest', nargs='?', help='specifies Renode version to download')
 
     exec_subparser = subparsers.add_parser("exec", help="execute Renode with arguments")
     exec_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
@@ -82,15 +83,21 @@ def report_progress(count, size, filesize):
     print(f"Downloaded {current:.2f}MB / {total:.2f}MB...", end='\r')
 
 
-def download_renode(target_dir_path, config_path, direct=False):
+def download_renode(target_dir_path, config_path, version='latest', direct=False):
     if not sys.platform.startswith('linux'):
         raise Exception("Renode can only be automatically downloaded on Linux. On other OSes please visit https://builds.renode.io and install the latest package for your system.")
 
-    from urllib import request
+    from urllib import request, error
     import tarfile
 
     print('Downloading Renode...')
-    renode_package, _ = request.urlretrieve("https://builds.renode.io/renode-latest.linux-portable.tar.gz", reporthook=report_progress)
+
+    try:
+        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress)
+    except error.HTTPError:
+        print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
+        sys.exit(1)
+
     print()
     print("Download finished!")
 
@@ -222,7 +229,7 @@ def download_command(args):
     target_dir_path = args.path
     if target_dir_path is None:
         target_dir_path = Path(args.artifacts_path) / renode_target_dirname
-    download_renode(target_dir_path, renode_run_config_path, args.direct)
+    download_renode(target_dir_path, renode_run_config_path, args.version, args.direct)
 
 
 def demo_command(args):
@@ -273,8 +280,14 @@ def test_command(args):
     renode_dir = Path(renode).parent
     renode_test = renode_dir / 'renode-test'
     if not Path.exists(renode_test):
-        print(f'Found Renode binary in {renode_dir}, but renode-test is missing; corrupted pacakge?')
-        sys.exit(1)
+        print(f'Found Renode binary in {renode_dir}, but renode-test is missing; trying test.sh')
+        renode_test = renode_dir / 'test.sh'
+
+        if not Path.exists(renode_test):
+            print('test.sh does not exist; corrupted package?')
+            sys.exit(1)
+
+        print('test.sh script found, using it instead of renode-test')
 
     import subprocess
     import venv
