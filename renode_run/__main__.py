@@ -168,14 +168,15 @@ def get_renode(artifacts_dir, try_to_download=True):
     return renode_path
 
 
-def generate_script(binary, platform, generate_repl):
+def generate_script(binary_name, platform, generate_repl):
 
+    binary = binary_name
     if not os.path.exists(binary):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
         if binary[0:4] != 'http':
             binary = f"{dashboard_link}/{platform}-{binary}/{platform}-zephyr-{binary}.elf"
 
-    repl = f"{dashboard_link}/{platform}-{binary}/{platform}-{binary}.repl"
+    repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
         import urllib.request
         urllib.request.urlretrieve(f"{dashboard_link}/{platform}.dts", platform + ".dts")
