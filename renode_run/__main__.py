@@ -173,9 +173,9 @@ def generate_script(binary, platform, generate_repl):
     if not os.path.exists(binary):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
         if binary[0:4] != 'http':
-            binary = f"{dashboard_link}/{platform}-zephyr-{binary}.elf"
+            binary = f"{dashboard_link}/{platform}-{binary}/{platform}-zephyr-{binary}.elf"
 
-    repl = f"{dashboard_link}/{platform}.repl"
+    repl = f"{dashboard_link}/{platform}-{binary}/{platform}-{binary}.repl"
     if generate_repl:
         import urllib.request
         urllib.request.urlretrieve(f"{dashboard_link}/{platform}.dts", platform + ".dts")
