@@ -179,7 +179,7 @@ def generate_script(binary_name, platform, generate_repl):
     repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
         import urllib.request
-        urllib.request.urlretrieve(f"{dashboard_link}/{platform}.dts", platform + ".dts")
+        urllib.request.urlretrieve(f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.dts", platform + ".dts")
         with open(platform + ".repl", 'w') as repl_file:
             from argparse import Namespace
             fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts", overlays = "")
