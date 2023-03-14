@@ -35,6 +35,9 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             subprocess.check_call(args, env=env)
         except subprocess.CalledProcessError as err:
             print(f'Could not install given requirements: {err}')
+            print('Requirements have to be installed manually, or the environment has to be deleted before running command again')
+            print(f'Environment path: {context.env_dir}')
+            exit(err.errorcode)
 
 
 def parse_args():
@@ -277,7 +280,8 @@ def demo_command(args):
     with tempfile.NamedTemporaryFile() as temp:
         temp.write(script.encode("utf-8"))
         temp.flush()
-        subprocess.run([renode_path, temp.name] + args.renode_arguments)
+        ret = subprocess.run([renode_path, temp.name] + args.renode_arguments)
+    sys.exit(ret.returncode)
 
 
 def exec_command(args):
@@ -288,7 +292,8 @@ def exec_command(args):
     import subprocess
 
     renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
-    subprocess.run([renode] + renode_args)
+    ret = subprocess.run([renode] + renode_args)
+    sys.exit(ret.returncode)
 
 
 def test_command(args):
@@ -330,7 +335,8 @@ def test_command(args):
     env['PATH'] = f'{python_bin}:' + (env['PATH'] or '')
 
     renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
-    subprocess.run([renode_test] + renode_args, env=env)
+    ret = subprocess.run([renode_test] + renode_args, env=env)
+    sys.exit(ret.returncode)
 
 
 def main():
