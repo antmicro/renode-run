@@ -312,7 +312,9 @@ def test_command(args):
     env['PATH'] = f'{python_bin}:' + (env['PATH'] or '')
 
     renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
-    subprocess.run([renode_test] + renode_args, env=env)
+    result = subprocess.run([renode_test] + renode_args, env=env)
+    if result.returncode != 0:
+        raise Exception("There has been an error when running the tests. Check the output above.")
 
 
 def main():
