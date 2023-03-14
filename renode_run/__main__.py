@@ -12,6 +12,8 @@ renode_target_dirname = "renode-run.download"
 renode_run_config_filename = "renode-run.path"
 renode_test_venv_dirname = "renode-run.venv"
 
+download_progress_delay = 1
+
 
 class EnvBuilderWithRequirements(venv.EnvBuilder):
     def __init__(self, *args, **kwargs):
@@ -76,11 +78,27 @@ def parse_args():
     return SimpleNamespace(**args)
 
 
-def report_progress(count, size, filesize):
-    total = filesize / (1024 * 1024.0)
-    current = count * size * 1.0 / (1024 * 1024.0)
-    current = min(current, total)
-    print(f"Downloaded {current:.2f}MB / {total:.2f}MB...", end='\r')
+def report_progress():
+    import time
+    import datetime
+
+    start_time = previous_time = time.time()
+
+    def aux(count, size, filesize):
+        nonlocal previous_time
+        current_time = time.time()
+
+        if previous_time + download_progress_delay > current_time and count != 0 and size * count < filesize:
+            return
+
+        previous_time = current_time
+        total = filesize / (1024 * 1024.0)
+        current = count * size * 1.0 / (1024 * 1024.0)
+        current = min(current, total)
+
+        time_elapsed = datetime.timedelta(seconds=current_time - start_time)
+        print(f"Downloaded {current:.2f}MB / {total:.2f}MB (time elapsed: {time_elapsed})...", end='\r')
+    return aux
 
 
 def download_renode(target_dir_path, config_path, version='latest', direct=False):
@@ -93,7 +111,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
     print('Downloading Renode...')
 
     try:
-        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress)
+        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress())
     except error.HTTPError:
         print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
         sys.exit(1)
