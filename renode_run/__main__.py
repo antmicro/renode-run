@@ -40,10 +40,6 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
 def parse_args():
     import argparse
     from types import SimpleNamespace
-    main_parser = argparse.ArgumentParser()
-    main_parser.add_argument('-a', '--artifacts', dest='artifacts_path', default=str(default_renode_artifacts_dir), help='path for renode-run artifacts (e.g. config, Renode installations)')
-    main_parser.add_argument('command', default=[], nargs=argparse.REMAINDER)
-
     command_parser = argparse.ArgumentParser()
     subparsers = command_parser.add_subparsers(title="commands", dest="command")
 
@@ -66,8 +62,12 @@ def parse_args():
     demo_subparser.add_argument('renode_arguments', default=[], nargs=argparse.REMAINDER, help="additional Renode arguments")
 
     registered_commands = set(subparsers.choices.keys())
-    main_args = main_parser.parse_args()
 
+    main_parser = argparse.ArgumentParser()
+    main_parser.add_argument('-a', '--artifacts', dest='artifacts_path', default=str(default_renode_artifacts_dir), help='path for renode-run artifacts (e.g. config, Renode installations)')
+    main_parser.add_argument('command', default=[], choices=registered_commands, nargs=argparse.REMAINDER)
+
+    main_args = main_parser.parse_args()
     args = {arg: getattr(main_args, arg) for arg in vars(main_args) if arg != 'command'}
 
     if len(main_args.command) > 0 and main_args.command[0] in registered_commands:
