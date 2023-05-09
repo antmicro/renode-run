@@ -49,6 +49,7 @@ def parse_args():
     dl_subparser = subparsers.add_parser("download", help="download Renode portable (Linux only!)")
     dl_subparser.add_argument('-p', '--path', dest='path', default=None, help="path for Renode download")
     dl_subparser.add_argument('-d', '--direct', dest='direct', action='store_true', help="do not create additional directories with Renode version")
+    dl_subparser.add_argument('--net', dest='use_dotnet', action='store_true', help="use dotnet portable instead of mono")
     dl_subparser.add_argument('version', default='latest', nargs='?', help='specifies Renode version to download')
 
     exec_subparser = subparsers.add_parser("exec", help="execute Renode with arguments")
@@ -104,17 +105,18 @@ def report_progress():
     return aux
 
 
-def download_renode(target_dir_path, config_path, version='latest', direct=False):
+def download_renode(target_dir_path, config_path, version='latest', direct=False, use_dotnet=False):
     if not sys.platform.startswith('linux'):
         raise Exception("Renode can only be automatically downloaded on Linux. On other OSes please visit https://builds.renode.io and install the latest package for your system.")
 
     from urllib import request, error
     import tarfile
 
-    print('Downloading Renode...')
+    print(f"Downloading Renode ({'dotnet' if use_dotnet else 'mono'} version)...")
 
+    suffix = 'linux-portable-dotnet' if use_dotnet else 'linux-portable'
     try:
-        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress())
+        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.{suffix}.tar.gz", reporthook=report_progress())
     except error.HTTPError:
         print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
         sys.exit(1)
@@ -251,7 +253,7 @@ def download_command(args):
     target_dir_path = args.path
     if target_dir_path is None:
         target_dir_path = Path(args.artifacts_path) / renode_target_dirname
-    download_renode(target_dir_path, renode_run_config_path, args.version, args.direct)
+    download_renode(target_dir_path, renode_run_config_path, args.version, args.direct, args.use_dotnet)
 
 
 def demo_command(args):
