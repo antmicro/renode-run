@@ -292,6 +292,7 @@ def exec_command(args):
     import subprocess
 
     renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
+    sys.stdout.flush()
     ret = subprocess.run([renode] + renode_args)
     sys.exit(ret.returncode)
 
