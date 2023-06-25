@@ -1,0 +1,14 @@
+Test:
+  image:
+    name: debian:bullseye
+  variables:
+    DEBIAN_FRONTEND: "noninteractive"
+  before_script:
+    - apt -qqy update > /dev/null 2> /dev/null
+    - apt -qqy install python3 python3-pip > /dev/null 2> /dev/null
+  script:
+    - pip3 install .
+    - renode-run download
+    - renode-run -- --version
+    - renode-run -- --console --plain -e "mach create ; q"
+
