@@ -39,3 +39,9 @@ Run a demo from [Renodepedia](https://zephyr-dashboard.renode.io/renodepedia/):
 ```
 renode-run demo --board 96b_nitrogen shell_module
 ```
+
+You can also provide a name of your local ELF file with a similar syntax:
+
+```
+renode-run demo --board 96b_nitrogen my-software.elf
+```

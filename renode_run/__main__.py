@@ -196,6 +196,10 @@ def generate_script(binary_name, platform, generate_repl):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
         if binary[0:4] != 'http':
             binary = f"{dashboard_link}/{platform}-{binary}/{platform}-zephyr-{binary}.elf"
+    else:
+        # We don't need to fetch the binary, but we still need to fetch additional resources like repl or dts.
+        # Let's use the hello_world sample, as it's the most vanilla one.
+        binary_name = 'hello_world'
 
     repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
