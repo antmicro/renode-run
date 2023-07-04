@@ -59,7 +59,7 @@ def parse_args():
     test_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
 
     demo_subparser = subparsers.add_parser("demo", help="run a demo from precompiled binaries")
-    demo_subparser.add_argument('-b', '--board', dest='board', required=True, help=f"board name, as listed on {dashboard_link}")
+    demo_subparser.add_argument('-b', '--board', dest='board', help=f"board name, as listed on {dashboard_link}")
     demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="whether to generate the repl from dts")
     demo_subparser.add_argument('binary', help="binary name, either local or remote")
     demo_subparser.add_argument('renode_arguments', default=[], nargs=argparse.REMAINDER, help="additional Renode arguments")
@@ -269,11 +269,17 @@ def demo_command(args):
     results = json.loads(url.text)
     boards = [r["board_name"] for r in results]
 
+    if args.board is None:
+        from pyfzf.pyfzf import FzfPrompt
+        fzf = FzfPrompt()
+        args.board = fzf.prompt(boards)[0]
+
     if args.board not in boards:
         print(f'Platform "{args.board}" not in Zephyr platforms list on server.')
-        print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
-        print('Choose one of the platforms listed above and try again.')
-        sys.exit(1)
+        print(f'Falling back to fuzzy selection.')
+        from pyfzf.pyfzf import FzfPrompt
+        fzf = FzfPrompt()
+        args.board = fzf.prompt(boards)[0]
 
     renode_path = get_renode(args.artifacts_path)
 
