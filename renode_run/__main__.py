@@ -127,10 +127,11 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
     try:
         with tarfile.open(renode_package) as tar:
             if direct:
-                # When --direct argument is passed, we would like to
-                # extract contents of the archive directly to path given by user,
-                # and not into new directory. Therefore we iterate over all files (paths)
-                # in archive, and strip them from the first part, which is renode_<version>
+                # When the --direct argument is passed, we would like to
+                # extract contents of the archive directly to the path given by the user,
+                # and not into a new directory.
+                # Therefore we iterate over all files (paths) in the archive,
+                # and strip them from the first part, which is the renode_<version>
                 # directory.
                 final_path = target_dir
                 renode_bin_path = final_path / 'renode'
