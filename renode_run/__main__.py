@@ -266,11 +266,17 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
     results = json.loads(url.text)
     boards = [r["board_name"] for r in results]
 
+    if board is None:
+        from pyfzf.pyfzf import FzfPrompt
+        fzf = FzfPrompt()
+        board = fzf.prompt(boards)[0]
+
     if board not in boards:
         print(f'Platform "{board}" not in Zephyr platforms list on server.')
-        print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
-        print('Choose one of the platforms listed above and try again.')
-        sys.exit(1)
+        print(f'Falling back to fuzzy selection.')
+        from pyfzf.pyfzf import FzfPrompt
+        fzf = FzfPrompt()
+        board = fzf.prompt(boards)[0]
 
     renode_path = get_renode(artifacts_path)
 
