@@ -62,7 +62,7 @@ def parse_args():
     demo_subparser.add_argument('-b', '--board', dest='board', required=True, help=f"board name, as listed on {dashboard_link}")
     demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="whether to generate the repl from dts")
     demo_subparser.add_argument('binary', help="binary name, either local or remote")
-    demo_subparser.add_argument('renode_arguments', default=[], nargs=argparse.REMAINDER, help="additional Renode arguments")
+    demo_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER, help="additional Renode arguments")
 
     registered_commands = set(subparsers.choices.keys())
 
@@ -78,7 +78,7 @@ def parse_args():
         args.update({arg: getattr(command_args, arg) for arg in vars(command_args)})
     else:
         args.update({'command': None, 'renode_args': main_args.command})
-    return SimpleNamespace(**args)
+    return args
 
 
 def report_progress():
@@ -251,15 +251,15 @@ echo "Use 'start' to run the demo"'''
     return script
 
 
-def download_command(args):
-    renode_run_config_path = Path(args.artifacts_path) / renode_run_config_filename
-    target_dir_path = args.path
+def download_command(artifacts_path, path, version, direct):
+    renode_run_config_path = Path(artifacts_path) / renode_run_config_filename
+    target_dir_path = path
     if target_dir_path is None:
-        target_dir_path = Path(args.artifacts_path) / renode_target_dirname
-    download_renode(target_dir_path, renode_run_config_path, args.version, args.direct)
+        target_dir_path = Path(artifacts_path) / renode_target_dirname
+    download_renode(target_dir_path, renode_run_config_path, version, direct)
 
 
-def demo_command(args):
+def demo_command(artifacts_path, board, binary, generate_repl, renode_args):
     import json
     import requests
     import tempfile
@@ -269,41 +269,40 @@ def demo_command(args):
     results = json.loads(url.text)
     boards = [r["board_name"] for r in results]
 
-    if args.board not in boards:
-        print(f'Platform "{args.board}" not in Zephyr platforms list on server.')
+    if board not in boards:
+        print(f'Platform "{board}" not in Zephyr platforms list on server.')
         print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
         print('Choose one of the platforms listed above and try again.')
         sys.exit(1)
 
-    renode_path = get_renode(args.artifacts_path)
+    renode_path = get_renode(artifacts_path)
 
     if renode_path is None:
         sys.exit(1)
 
-    script = generate_script(args.binary, args.board, args.generate_repl)
+    script = generate_script(binary, board, generate_repl)
 
     with tempfile.NamedTemporaryFile() as temp:
         temp.write(script.encode("utf-8"))
         temp.flush()
-        ret = subprocess.run([renode_path, temp.name] + args.renode_arguments)
+        ret = subprocess.run([renode_path, temp.name] + renode_arguments)
     sys.exit(ret.returncode)
 
 
-def exec_command(args):
-    renode = get_renode(args.artifacts_path)
+def exec_command(artifacts_path, renode_args):
+    renode = get_renode(artifacts_path)
     if renode is None:
         sys.exit(1)
 
     import subprocess
 
-    renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
     sys.stdout.flush()
     ret = subprocess.run([renode] + renode_args)
     sys.exit(ret.returncode)
 
 
-def test_command(args):
-    renode = get_renode(args.artifacts_path)
+def test_command(artifacts_path, venv_path, renode_args):
+    renode = get_renode(artifacts_path)
     if renode is None:
         sys.exit(1)
 
@@ -322,10 +321,10 @@ def test_command(args):
     import subprocess
     import venv
 
-    if args.venv_path is not None:
-        venv_path = Path(args.venv_path)
+    if venv_path is not None:
+        venv_path = Path(venv_path)
     else:
-        venv_path = Path(args.artifacts_path) / renode_test_venv_dirname
+        venv_path = Path(artifacts_path) / renode_test_venv_dirname
 
     python_bin = venv_path / 'bin'
     python_path = python_bin / 'python'
@@ -340,20 +339,23 @@ def test_command(args):
     env = os.environ
     env['PATH'] = f'{python_bin}:' + (env['PATH'] or '')
 
-    renode_args = list(arg for arg in getattr(args, 'renode_args', []) if arg != '--')
     ret = subprocess.run([renode_test] + renode_args, env=env)
     sys.exit(ret.returncode)
 
 
 def main():
     args = parse_args()
+    command = args['command']
+    del args['command']
+    if command != 'download':
+        args['renode_args'] = list(arg for arg in args.get('renode_args', []) if arg != '--')
     ({
         'download': download_command,
         'demo': demo_command,
         'exec': exec_command,
         'test': test_command,
         None: exec_command,
-    })[args.command](args)
+    })[command](**args)
 
 if __name__ == "__main__":
     main()
