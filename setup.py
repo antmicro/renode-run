@@ -18,6 +18,8 @@ setup(
         'dts2repl @ git+https://github.com/antmicro/dts2repl@main#egg=dts2repl',
         'requests',
         'typer',
+        'pyfzf==0.3.1',
+        'requests==2.31.0',
     ],
     entry_points={
         'console_scripts': [
