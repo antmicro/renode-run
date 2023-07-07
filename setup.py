@@ -14,6 +14,7 @@ setup(
     author_email='contact@antmicro.com',
     url='antmicro.com',
     packages=['renode_run'],
+    python_requires='>=3.9',
     install_requires=[
         'dts2repl @ git+https://github.com/antmicro/dts2repl@main#egg=dts2repl',
         'pyfzf==0.3.1',
