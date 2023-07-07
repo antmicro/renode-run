@@ -313,23 +313,22 @@ def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = False, do_p
         return None
 
 def demo_command(args):
-    import json
+    import io
     import requests
     import tempfile
     import subprocess
 
     try:
-        url = requests.get(f"{dashboard_link}/results-shell_module_all.json", "results.json")
+        response = requests.get(f"{dashboard_link}/boards_sample_pairs")
     except requests.exceptions.RequestException:
         print(f'Failed to download the board list. Check your internet connection.')
         sys.exit(1)
 
-    if url.status_code != 200:
-        print(f'The server returned {url.status_code}. Cannot download board list.')
+    if response.status_code != 200:
+        print(f'The server returned {response.status_code}. Cannot download board list.')
         sys.exit(1)
 
-    results = json.loads(url.text)
-    boards = [r["board_name"] for r in results]
+    boards = {r.strip().split()[0] for r in io.StringIO(response.text)}
 
     if args.board is None:
         print('No board specified, select one from the list.')
