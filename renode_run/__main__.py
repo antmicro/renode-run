@@ -308,7 +308,14 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
         sys.exit(1)
 
     results = json.loads(url.text)
-    boards = [r["board_name"] for r in results]
+    boards_short_name = [r["board_name"] for r in results]
+    boards_name_full = [r["board_full_name"] for r in results]
+
+    names_map = dict()
+    for full, short in zip (boards_name_full, boards_short_name):
+        names_map[full] = short
+
+    boards = boards_short_name + boards_name_full
 
     if board is None:
         print('No board specified, select one from the list.')
@@ -329,6 +336,10 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
             print('Choose one of the platforms listed above and try again.')
             sys.exit(1)
+
+    # translate long name into short
+    if board in names_map:
+        board = names_map[board]
 
     renode_path = get_renode(artifacts_path)
 
