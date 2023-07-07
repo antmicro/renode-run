@@ -347,7 +347,6 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
         print('test.sh script found, using it instead of renode-test')
 
     import subprocess
-    import venv
 
     if venv_path is None:
         venv_path = artifacts_path / renode_test_venv_dirname
