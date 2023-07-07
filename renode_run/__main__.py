@@ -259,12 +259,16 @@ def download_command(args):
         target_dir_path = Path(args.artifacts_path) / renode_target_dirname
     download_renode(target_dir_path, renode_run_config_path, args.version, args.direct)
 
-def get_fuzzy_or_fail(alternatives: str, print_warning: bool = True) -> 'str|None':
+def get_fuzzy_or_fail(alternatives: str, do_prints: bool = True) -> 'str|None':
+    FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1"
     try:
         fzf = FzfPrompt()
-        return fzf.prompt(alternatives)[0]
+        sel = fzf.prompt(alternatives, FZF_STYLE)[0]
+        if do_prints:
+            print(f'Chosen: {sel}')
+        return sel
     except Exception as e:
-        if print_warning:
+        if do_prints:
             print(f'Cannot use fuzzy matching, falling back to strict mode. Reason: "{e}"')
         return None
 
