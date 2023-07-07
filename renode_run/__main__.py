@@ -289,6 +289,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
     boards = [r["board_name"] for r in results]
 
     if board is None:
+        print('No board specified, select one from the list.')
         if (newBoard := get_fuzzy_or_fail(boards)):
             board = newBoard
         else:
