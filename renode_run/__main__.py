@@ -3,7 +3,11 @@
 import os
 import sys
 import venv
+import json
 from pathlib import Path
+
+import requests
+import yaml
 from pyfzf.pyfzf import FzfPrompt
 
 dashboard_link = "https://zephyr-dashboard.renode.io"
@@ -82,9 +86,6 @@ def parse_args():
     return SimpleNamespace(**args)
 
 def download_samples_list() -> list:
-    import requests
-    import yaml
-
     try:
         response = requests.get(f"{dashboard_link}/zephyr.yaml")
     except requests.exceptions.RequestException:
@@ -210,11 +211,26 @@ def generate_script(binary_name, platform, generate_repl):
         print(f"Binary name `{binary_name}` is not a local file, trying remote.")
         if binary_name[0:4] != 'http':
             samples = download_samples_list()
+
+            # filter samples based on whether the sample has status different than "NOT BUILT" for the platform
+            # TODO: I'm not confident about this solution, these files are extremely big and parsing takes noticeable time
+            # we should have this information available per-board, this would require changes to zephyr-dashboard
+            built = []
+            for sample in samples:
+                try:
+                    response = requests.get(f"{dashboard_link}/results-{sample}-all.json")
+                except requests.exceptions.RequestException:
+                    print(f'Failed to download the board list. Check your internet connection.')
+                    sys.exit(1)
+                # find first occurrence (there shouldn't be duplicates)
+                samples_status = next(filter(lambda p: p['board_name'] == platform, json.loads(response.text)))
+                if samples_status['status'] != "NOT BUILT":
+                    built.append(sample)
+
             if binary_name in samples:
                 binary = f"{dashboard_link}/{platform}-{binary_name}/{platform}-zephyr-{binary_name}.elf"
             else:
-                # TODO: actually verify if they work on the platform
-                if(sel := get_fuzzy_or_none(samples, binary_name)):
+                if(sel := get_fuzzy_or_none(built, binary_name)):
                     binary_name = sel
                     binary = f"{dashboard_link}/{platform}-{binary_name}/{platform}-zephyr-{binary_name}.elf"
                 else:
@@ -296,7 +312,7 @@ def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = False, do_p
 
     opts = ' '.join([FZF_STYLE, FZF_DEFAULTS])
     if query:
-        opts += f' --query="{query}" '
+        opts += f' --query="{query}" --header="Select board:" --header-first '
     try:
         fzf = FzfPrompt()
         sel = fzf.prompt(alternatives, opts)[0]
@@ -314,7 +330,6 @@ def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = False, do_p
 
 def demo_command(args):
     import io
-    import requests
     import tempfile
     import subprocess
 
