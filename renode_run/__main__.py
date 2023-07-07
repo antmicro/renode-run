@@ -258,7 +258,7 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
     download_renode(target_dir_path, renode_run_config_path, version, direct)
 
 def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None, do_prints: bool = True) -> 'str|None':
-    FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1"
+    FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1 --scroll-off=3"
     FZF_DEFAULTS = "-i --cycle"
 
     opts = ' '.join([FZF_STYLE, FZF_DEFAULTS])
