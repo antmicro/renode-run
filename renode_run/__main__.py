@@ -81,6 +81,18 @@ def parse_args():
         args.update({'command': None, 'renode_args': main_args.command})
     return SimpleNamespace(**args)
 
+def download_samples_list() -> list:
+    import requests
+    import yaml
+
+    try:
+        response = requests.get(f"{dashboard_link}/zephyr.yaml")
+    except requests.exceptions.RequestException:
+        print("Cannot download samples list, check your internet connection.")
+        sys.exit(1)
+
+    parsed_yaml = yaml.safe_load(response.text)
+    return [name for name in parsed_yaml['samples']]
 
 def report_progress():
     import time
@@ -194,10 +206,21 @@ def get_renode(artifacts_dir, try_to_download=True):
 def generate_script(binary_name, platform, generate_repl):
 
     binary = binary_name
-    if not os.path.exists(binary):
-        print(f"Binary name `{binary}` is not a local file, trying remote.")
-        if binary[0:4] != 'http':
-            binary = f"{dashboard_link}/{platform}-{binary}/{platform}-zephyr-{binary}.elf"
+    if not os.path.exists(binary_name):
+        print(f"Binary name `{binary_name}` is not a local file, trying remote.")
+        if binary_name[0:4] != 'http':
+            samples = download_samples_list()
+            if binary_name in samples:
+                binary = f"{dashboard_link}/{platform}-{binary_name}/{platform}-zephyr-{binary_name}.elf"
+            else:
+                # TODO: actually verify if they work on the platform
+                if(sel := get_fuzzy_or_none(samples, binary_name)):
+                    binary_name = sel
+                    binary = f"{dashboard_link}/{platform}-{binary_name}/{platform}-zephyr-{binary_name}.elf"
+                else:
+                    print(f'Available demos: {chr(10)}{chr(10).join(samples)}')
+                    print('Select one of the demos listed above and try again.')
+                    sys.exit(1)
     else:
         # We don't need to fetch the binary, but we still need to fetch additional resources like repl or dts.
         # Let's use the hello_world sample, as it's the most vanilla one.
