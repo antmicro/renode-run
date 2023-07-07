@@ -10,6 +10,7 @@ import os
 import sys
 import venv
 from pathlib import Path
+from pyfzf.pyfzf import FzfPrompt
 
 import typer
 from typing_extensions import Annotated
@@ -248,6 +249,14 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
         target_dir_path = artifacts_path / renode_target_dirname
     download_renode(target_dir_path, renode_run_config_path, version, direct)
 
+def get_fuzzy_or_fail(alternatives: str, print_warning: bool = True) -> 'str|None':
+    try:
+        fzf = FzfPrompt()
+        return fzf.prompt(alternatives)[0]
+    except Exception as e:
+        if print_warning:
+            print(f'Cannot use fuzzy matching, falling back to strict mode. Reason: "{e}"')
+        return None
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("demo", help="run a demo from precompiled binaries")
@@ -267,16 +276,23 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
     boards = [r["board_name"] for r in results]
 
     if board is None:
-        from pyfzf.pyfzf import FzfPrompt
-        fzf = FzfPrompt()
-        board = fzf.prompt(boards)[0]
+        if (newBoard := get_fuzzy_or_fail(boards)):
+            board = newBoard
+        else:
+            print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
+            print('Choose one of the platforms listed above and try again.')
+            sys.exit(1)
 
     if board not in boards:
         print(f'Platform "{board}" not in Zephyr platforms list on server.')
+
         print(f'Falling back to fuzzy selection.')
-        from pyfzf.pyfzf import FzfPrompt
-        fzf = FzfPrompt()
-        board = fzf.prompt(boards)[0]
+        if (newBoard := get_fuzzy_or_fail(boards)):
+            board = newBoard
+        else:
+            print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
+            print('Choose one of the platforms listed above and try again.')
+            sys.exit(1)
 
     renode_path = get_renode(artifacts_path)
 
