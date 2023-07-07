@@ -342,7 +342,6 @@ def test_command(args):
         print('test.sh script found, using it instead of renode-test')
 
     import subprocess
-    import venv
 
     if args.venv_path is not None:
         venv_path = Path(args.venv_path)
