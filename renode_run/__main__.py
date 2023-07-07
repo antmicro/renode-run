@@ -272,6 +272,10 @@ def get_fuzzy_or_fail(alternatives: str, query: 'str|None' = False, do_prints: b
         if do_prints:
             print(f'Chosen: {sel}')
         return sel
+    except IndexError: # this can fire when we hit Ctrl-C when matching
+        if do_prints:
+            print('Match canceled, exiting.')
+        return None
     except Exception as e:
         if do_prints:
             print(f'Cannot use fuzzy matching, falling back to strict mode. Reason: "{e}"')
