@@ -251,7 +251,7 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
 
 def get_fuzzy_or_fail(alternatives: str, query: 'str|None' = None, do_prints: bool = True) -> 'str|None':
     FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1"
-    FZF_DEFAULTS = "-i"
+    FZF_DEFAULTS = "-i --cycle"
 
     opts = ' '.join([FZF_STYLE, FZF_DEFAULTS])
     if query:
