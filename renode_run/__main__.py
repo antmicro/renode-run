@@ -116,7 +116,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
 
     try:
         renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress())
-    except error.HTTPError:
+    except error.URLError:
         print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
         sys.exit(1)
 
@@ -205,8 +205,16 @@ def generate_script(binary_name, platform, generate_repl):
 
     repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
-        import urllib.request
-        urllib.request.urlretrieve(f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.dts", platform + ".dts")
+        import urllib.request, urllib.error
+        try:
+            urllib.request.urlretrieve(f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.dts", platform + ".dts")
+        except urllib.error.HTTPError:
+            print(f"Configuration could not be downloaded. Check if you specified the correct demo name.")
+            sys.exit(1)
+        except urllib.error.URLError:
+            print(f"Configuration could not be downloaded. Check if you have working internet connection.")
+            sys.exit(1)
+
         with open(platform + ".repl", 'w') as repl_file:
             from argparse import Namespace
             fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts", overlays = "")
@@ -287,7 +295,16 @@ def demo_command(args):
     import tempfile
     import subprocess
 
-    url = requests.get(f"{dashboard_link}/results-shell_module_all.json", "results.json")
+    try:
+        url = requests.get(f"{dashboard_link}/results-shell_module_all.json", "results.json")
+    except requests.exceptions.RequestException:
+        print(f'Failed to download the board list. Check your internet connection.')
+        sys.exit(1)
+
+    if url.status_code != 200:
+        print(f'The server returned {url.status_code}. Cannot download board list.')
+        sys.exit(1)
+
     results = json.loads(url.text)
     boards = [r["board_name"] for r in results]
 
