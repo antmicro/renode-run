@@ -267,7 +267,7 @@ def download_command(args):
         target_dir_path = Path(args.artifacts_path) / renode_target_dirname
     download_renode(target_dir_path, renode_run_config_path, args.version, args.direct)
 
-def get_fuzzy_or_fail(alternatives: str, query: 'str|None' = False, do_prints: bool = True) -> 'str|None':
+def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = False, do_prints: bool = True) -> 'str|None':
     FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1"
     FZF_DEFAULTS = "-i --cycle"
 
@@ -310,7 +310,7 @@ def demo_command(args):
 
     if args.board is None:
         print('No board specified, select one from the list.')
-        if (board := get_fuzzy_or_fail(boards)):
+        if (board := get_fuzzy_or_none(boards)):
             args.board = board
         else:
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
@@ -321,7 +321,7 @@ def demo_command(args):
         print(f'Platform "{args.board}" not in Zephyr platforms list on server.')
 
         print(f'Falling back to fuzzy selection.')
-        if (board := get_fuzzy_or_fail(boards, args.board)):
+        if (board := get_fuzzy_or_none(boards, args.board)):
             args.board = board
         else:
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
