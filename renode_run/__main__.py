@@ -10,6 +10,9 @@ import os
 import sys
 import venv
 from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 import typer
 from typing_extensions import Annotated
@@ -256,12 +259,11 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
         target_dir_path = artifacts_path / renode_target_dirname
     download_renode(target_dir_path, renode_run_config_path, version, direct)
 
-def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None, do_prints: bool = True) -> 'str|None':
+def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None) -> 'str|None':
     try:
         from pyfzf.pyfzf import FzfPrompt
     except ImportError:
-        if do_prints:
-            print('Could not import pyfzf, fuzzy matching disabled')
+        logging.debug('Could not import pyfzf, fuzzy matching disabled')
         return None
 
     FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1 --scroll-off=3"
@@ -273,16 +275,13 @@ def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None, do_pr
     try:
         fzf = FzfPrompt()
         sel = fzf.prompt(alternatives, opts)[0]
-        if do_prints:
-            print(f'Chosen: {sel}')
+        logging.info(f'Chosen: {sel}')
         return sel
     except IndexError: # this can fire when we hit Ctrl-C when matching
-        if do_prints:
-            print('Match canceled, exiting.')
+        logging.debug('Match canceled, exiting.')
         return None
     except Exception as e:
-        if do_prints:
-            print(f'Cannot use fuzzy matching, falling back to strict mode. Reason: "{e}"')
+        logging.debug(f'Cannot use fuzzy matching, falling back to strict mode. Reason: "{e}"')
         return None
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
