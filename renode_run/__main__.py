@@ -10,7 +10,6 @@ import os
 import sys
 import venv
 from pathlib import Path
-from pyfzf.pyfzf import FzfPrompt
 
 import typer
 from typing_extensions import Annotated
@@ -258,6 +257,13 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
     download_renode(target_dir_path, renode_run_config_path, version, direct)
 
 def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None, do_prints: bool = True) -> 'str|None':
+    try:
+        from pyfzf.pyfzf import FzfPrompt
+    except ImportError:
+        if do_prints:
+            print('Could not import pyfzf, fuzzy matching disabled')
+        return None
+
     FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1 --scroll-off=3"
     FZF_DEFAULTS = "-i --cycle"
 
