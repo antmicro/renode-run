@@ -292,6 +292,7 @@ def demo_command(args):
     boards = [r["board_name"] for r in results]
 
     if args.board is None:
+        print('No board specified, select one from the list.')
         if (board := get_fuzzy_or_fail(boards)):
             args.board = board
         else:
