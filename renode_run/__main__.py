@@ -4,6 +4,7 @@ import os
 import sys
 import venv
 from pathlib import Path
+from pyfzf.pyfzf import FzfPrompt
 
 dashboard_link = "https://zephyr-dashboard.renode.io"
 default_renode_artifacts_dir = Path.home() / ".config" / "renode"
@@ -258,6 +259,14 @@ def download_command(args):
         target_dir_path = Path(args.artifacts_path) / renode_target_dirname
     download_renode(target_dir_path, renode_run_config_path, args.version, args.direct)
 
+def get_fuzzy_or_fail(alternatives: str, print_warning: bool = True) -> 'str|None':
+    try:
+        fzf = FzfPrompt()
+        return fzf.prompt(alternatives)[0]
+    except Exception as e:
+        if print_warning:
+            print(f'Cannot use fuzzy matching, falling back to strict mode. Reason: "{e}"')
+        return None
 
 def demo_command(args):
     import json
@@ -270,16 +279,23 @@ def demo_command(args):
     boards = [r["board_name"] for r in results]
 
     if args.board is None:
-        from pyfzf.pyfzf import FzfPrompt
-        fzf = FzfPrompt()
-        args.board = fzf.prompt(boards)[0]
+        if (board := get_fuzzy_or_fail(boards)):
+            args.board = board
+        else:
+            print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
+            print('Choose one of the platforms listed above and try again.')
+            sys.exit(1)
 
     if args.board not in boards:
         print(f'Platform "{args.board}" not in Zephyr platforms list on server.')
+
         print(f'Falling back to fuzzy selection.')
-        from pyfzf.pyfzf import FzfPrompt
-        fzf = FzfPrompt()
-        args.board = fzf.prompt(boards)[0]
+        if (board := get_fuzzy_or_fail(boards)):
+            args.board = board
+        else:
+            print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
+            print('Choose one of the platforms listed above and try again.')
+            sys.exit(1)
 
     renode_path = get_renode(args.artifacts_path)
 
