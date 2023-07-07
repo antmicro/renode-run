@@ -10,6 +10,8 @@ Install:
 pip3 install --upgrade --user git+https://github.com/antmicro/renode-run
 ```
 
+To leverage fuzzy board matching, you need to have `fzf` installed in your PATH. Refer to [installation instructions](https://github.com/junegunn/fzf#installation).
+
 Download/upgrade Renode to the latest nightly build:
 
 ```
