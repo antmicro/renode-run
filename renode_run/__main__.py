@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+#
+# Copyright (c) 2022-2023 Antmicro
+#
+# This file is licensed under the Apache License.
+# Full license text is available in 'LICENSE'.
+#
 
 import os
 import sys
