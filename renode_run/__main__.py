@@ -11,6 +11,10 @@ import sys
 import venv
 from pathlib import Path
 
+import typer
+from typing_extensions import Annotated
+from typing import Optional
+
 dashboard_link = "https://zephyr-dashboard.renode.io"
 default_renode_artifacts_dir = Path.home() / ".config" / "renode"
 
@@ -20,6 +24,12 @@ renode_test_venv_dirname = "renode-run.venv"
 
 download_progress_delay = 1
 
+renode_args = []
+global_artifacts_path = None
+
+artifacts_path_annotation = Annotated[Path, typer.Option("-a", "--artifacts_path", help='path for renode-run artifacts (e.g. config, Renode installations)')]
+
+app = typer.Typer()
 
 class EnvBuilderWithRequirements(venv.EnvBuilder):
     def __init__(self, *args, **kwargs):
@@ -44,47 +54,6 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             print('Requirements have to be installed manually, or the environment has to be deleted before running command again')
             print(f'Environment path: {context.env_dir}')
             exit(err.errorcode)
-
-
-def parse_args():
-    import argparse
-    from types import SimpleNamespace
-    command_parser = argparse.ArgumentParser()
-    subparsers = command_parser.add_subparsers(title="commands", dest="command")
-
-    dl_subparser = subparsers.add_parser("download", help="download Renode portable (Linux only!)")
-    dl_subparser.add_argument('-p', '--path', dest='path', default=None, help="path for Renode download")
-    dl_subparser.add_argument('-d', '--direct', dest='direct', action='store_true', help="do not create additional directories with Renode version")
-    dl_subparser.add_argument('version', default='latest', nargs='?', help='specifies Renode version to download')
-
-    exec_subparser = subparsers.add_parser("exec", help="execute Renode with arguments")
-    exec_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
-
-    test_subparser = subparsers.add_parser("test", help="execute renode-test with arguments")
-    test_subparser.add_argument('--venv', dest='venv_path', help='path for virtualenv used by renode-test')
-    test_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER)
-
-    demo_subparser = subparsers.add_parser("demo", help="run a demo from precompiled binaries")
-    demo_subparser.add_argument('-b', '--board', dest='board', required=True, help=f"board name, as listed on {dashboard_link}")
-    demo_subparser.add_argument('-g', '--generate-repl', dest='generate_repl', action='store_true', help="whether to generate the repl from dts")
-    demo_subparser.add_argument('binary', help="binary name, either local or remote")
-    demo_subparser.add_argument('renode_args', default=[], nargs=argparse.REMAINDER, help="additional Renode arguments")
-
-    registered_commands = set(subparsers.choices.keys())
-
-    main_parser = argparse.ArgumentParser()
-    main_parser.add_argument('-a', '--artifacts', dest='artifacts_path', default=str(default_renode_artifacts_dir), help='path for renode-run artifacts (e.g. config, Renode installations)')
-    main_parser.add_argument('command', default=[], choices=registered_commands, nargs=argparse.REMAINDER)
-
-    main_args = main_parser.parse_args()
-    args = {arg: getattr(main_args, arg) for arg in vars(main_args) if arg != 'command'}
-
-    if len(main_args.command) > 0 and main_args.command[0] in registered_commands:
-        command_args = command_parser.parse_args(main_args.command)
-        args.update({arg: getattr(command_args, arg) for arg in vars(command_args)})
-    else:
-        args.update({'command': None, 'renode_args': main_args.command})
-    return args
 
 
 def report_progress():
@@ -128,8 +97,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
     print()
     print("Download finished!")
 
-    target_dir = Path(target_dir_path)
-    os.makedirs(target_dir, exist_ok=True)
+    os.makedirs(target_dir_path, exist_ok=True)
     try:
         with tarfile.open(renode_package) as tar:
             if direct:
@@ -139,23 +107,23 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
                 # Therefore we iterate over all files (paths) in the archive,
                 # and strip them from the first part, which is the renode_<version>
                 # directory.
-                final_path = target_dir
+                final_path = target_dir_path
                 renode_bin_path = final_path / 'renode'
                 if Path.exists(renode_bin_path):
-                    print(f"Renode is already present in {target_dir}")
+                    print(f"Renode is already present in {target_dir_path}")
                     return
                 members = tar.getmembers()
                 for member in members:
                     old_member_path = Path(member.path).parts[1:]
                     member.path = Path(*old_member_path)
-                tar.extractall(target_dir, members=members)
+                tar.extractall(target_dir_path, members=members)
             else:
                 renode_version = tar.members[0].name
-                final_path = target_dir / renode_version
+                final_path = target_dir_path / renode_version
                 if Path.exists(final_path):
-                    print(f"Renode {renode_version} is already available in {target_dir}, keeping the previous version")
+                    print(f"Renode {renode_version} is already available in {target_dir_path}, keeping the previous version")
                     return
-                tar.extractall(target_dir)
+                tar.extractall(target_dir_path)
             print(f"Renode stored in {final_path}")
 
         with open(config_path, mode="w") as config:
@@ -167,7 +135,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
 def get_renode(artifacts_dir, try_to_download=True):
     # First, we try <artifacts_dir>, then we look in $PATH
     renode_path = None
-    renode_run_config = Path(artifacts_dir) / renode_run_config_filename
+    renode_run_config = artifacts_dir / renode_run_config_filename
     if Path.exists(renode_run_config):
         with open(renode_run_config, mode="r") as config:
             renode_path = Path(config.read()) / "renode"
@@ -183,8 +151,8 @@ def get_renode(artifacts_dir, try_to_download=True):
     if renode_path is None:
         if try_to_download:
             print('Renode not found. Downloading...')
-            renode_target_dir = Path(artifacts_dir) / renode_target_dirname
-            renode_run_config_path = Path(artifacts_dir) / renode_run_config_filename
+            renode_target_dir = artifacts_dir / renode_target_dirname
+            renode_run_config_path = artifacts_dir / renode_run_config_filename
             download_renode(renode_target_dir, renode_run_config_path)
             return get_renode(artifacts_dir, False)
         else:
@@ -257,16 +225,38 @@ echo "Use 'start' to run the demo"'''
     return script
 
 
-def download_command(artifacts_path, path, version, direct):
+def choose_artifacts_path(lower_priority_path, higher_priority_path):
+    if higher_priority_path is not None:
+        return higher_priority_path
+    if lower_priority_path is not None:
+        return lower_priority_path
+    return default_renode_artifacts_dir
+
+
+# For backward compatibility artifacts_path option can be passed both before and after specifying the command.
+@app.command("download", help="download Renode portable (Linux only!)")
+def download_command(artifacts_path: artifacts_path_annotation = None,
+                     path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
+                     direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
+                     version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
+    # Option passed after the command has higher priority.
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     os.makedirs(artifacts_path, exist_ok=True)
-    renode_run_config_path = Path(artifacts_path) / renode_run_config_filename
+    renode_run_config_path = artifacts_path / renode_run_config_filename
     target_dir_path = path
     if target_dir_path is None:
-        target_dir_path = Path(artifacts_path) / renode_target_dirname
+        target_dir_path = artifacts_path / renode_target_dirname
     download_renode(target_dir_path, renode_run_config_path, version, direct)
 
 
-def demo_command(artifacts_path, board, binary, generate_repl, renode_args):
+# For backward compatibility artifacts_path option can be passed both before and after specifying the command.
+@app.command("demo", help="run a demo from precompiled binaries")
+def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')],
+                 binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
+                 artifacts_path: artifacts_path_annotation = None,
+                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False):
+    # Option passed after the command has higher priority.
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     import json
     import requests
     import tempfile
@@ -296,7 +286,11 @@ def demo_command(artifacts_path, board, binary, generate_repl, renode_args):
     sys.exit(ret.returncode)
 
 
-def exec_command(artifacts_path, renode_args):
+# For backward compatibility artifacts_path option can be passed both before and after specifying the command.
+@app.command("exec", help="execute Renode with arguments")
+def exec_command(artifacts_path: artifacts_path_annotation = None):
+    # Option passed after the command has higher priority.
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     renode = get_renode(artifacts_path)
     if renode is None:
         sys.exit(1)
@@ -308,7 +302,12 @@ def exec_command(artifacts_path, renode_args):
     sys.exit(ret.returncode)
 
 
-def test_command(artifacts_path, venv_path, renode_args):
+# For backward compatibility artifacts_path option can be passed both before and after specifying the command.
+@app.command("test", help="execute renode-test with arguments")
+def test_command(artifacts_path: artifacts_path_annotation = None,
+                 venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None):
+    # Option passed after the command has higher priority.
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     renode = get_renode(artifacts_path)
     if renode is None:
         sys.exit(1)
@@ -328,10 +327,8 @@ def test_command(artifacts_path, venv_path, renode_args):
     import subprocess
     import venv
 
-    if venv_path is not None:
-        venv_path = Path(venv_path)
-    else:
-        venv_path = Path(artifacts_path) / renode_test_venv_dirname
+    if venv_path is None:
+        venv_path = artifacts_path / renode_test_venv_dirname
 
     python_bin = venv_path / 'bin'
     python_path = python_bin / 'python'
@@ -350,19 +347,21 @@ def test_command(artifacts_path, venv_path, renode_args):
     sys.exit(ret.returncode)
 
 
-def main():
-    args = parse_args()
-    command = args['command']
-    del args['command']
-    if command != 'download':
-        args['renode_args'] = list(arg for arg in args.get('renode_args', []) if arg != '--')
-    ({
-        'download': download_command,
-        'demo': demo_command,
-        'exec': exec_command,
-        'test': test_command,
-        None: exec_command,
-    })[command](**args)
+# Calling renode-run without arguments runs renode from default path
+@app.callback(invoke_without_command=True)
+def parse_artifacts_path(ctx: typer.Context, artifacts_path: artifacts_path_annotation = None):
+    # For backward compatibility we're allowing to pass artifacts_path before specifying the command
+    global global_artifacts_path
+    global_artifacts_path = artifacts_path
+    if ctx.invoked_subcommand is None:
+        exec_command()
 
-if __name__ == "__main__":
-    main()
+
+def main():
+    # Cut off renode arguments after "--" and keep globally
+    global renode_args
+    if "--" in sys.argv:
+        index = sys.argv.index("--")
+        renode_args = sys.argv[index+1:]
+        sys.argv = sys.argv[:index]
+    app()
