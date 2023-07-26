@@ -319,8 +319,8 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
     if board is None:
         print('No board specified, select one from the list.')
-        if (newBoard := get_fuzzy_or_none(boards)):
-            board = newBoard
+        if (foundBoard := get_fuzzy_or_none(boards)):
+            board = foundBoard
         else:
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
             print('Choose one of the platforms listed above and try again.')
@@ -330,8 +330,8 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
         print(f'Platform "{board}" not in Zephyr platforms list on server.')
 
         print(f'Falling back to fuzzy selection.')
-        if (newBoard := get_fuzzy_or_none(boards, board)):
-            board = newBoard
+        if (foundBoard := get_fuzzy_or_none(boards, board)):
+            board = foundBoard
         else:
             print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
             print('Choose one of the platforms listed above and try again.')
