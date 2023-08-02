@@ -285,7 +285,7 @@ def demo_command(artifacts_path, board, binary, generate_repl, renode_args):
     with tempfile.NamedTemporaryFile() as temp:
         temp.write(script.encode("utf-8"))
         temp.flush()
-        ret = subprocess.run([renode_path, temp.name] + renode_arguments)
+        ret = subprocess.run([renode_path, temp.name] + renode_args)
     sys.exit(ret.returncode)
 
 
