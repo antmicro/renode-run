@@ -252,6 +252,7 @@ echo "Use 'start' to run the demo"'''
 
 
 def download_command(artifacts_path, path, version, direct):
+    os.makedirs(artifacts_path, exist_ok=True)
     renode_run_config_path = Path(artifacts_path) / renode_run_config_filename
     target_dir_path = path
     if target_dir_path is None:
