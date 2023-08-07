@@ -265,7 +265,7 @@ def demo_command(artifacts_path, board, binary, generate_repl, renode_args):
     import tempfile
     import subprocess
 
-    url = requests.get(f"{dashboard_link}/results-shell_module_all.json", "results.json")
+    url = requests.get(f"{dashboard_link}/results-shell_module-all.json", "results.json")
     results = json.loads(url.text)
     boards = [r["board_name"] for r in results]
 
