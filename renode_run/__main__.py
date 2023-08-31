@@ -266,7 +266,7 @@ def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None) -> 's
         logging.debug('Could not import pyfzf, fuzzy matching disabled')
         return None
 
-    FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1 --scroll-off=3"
+    FZF_STYLE = "--height=80% --layout=reverse --info=inline --border --margin=1 --padding=1"
     FZF_DEFAULTS = "-i --cycle"
 
     opts = ' '.join([FZF_STYLE, FZF_DEFAULTS])
