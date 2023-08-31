@@ -286,9 +286,9 @@ def get_fuzzy_or_none(alternatives: 'list[str]', query: 'str|None' = None) -> 's
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("demo", help="run a demo from precompiled binaries")
-def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')],
-                 binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
+def demo_command(binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
                  artifacts_path: artifacts_path_annotation = None,
+                 board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')] = None,
                  generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
