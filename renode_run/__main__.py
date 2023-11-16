@@ -5,21 +5,28 @@
 # This file is licensed under the Apache License.
 # Full license text is available in 'LICENSE'.
 #
-
+import io
+import logging
 import os
+import pathlib
 import sys
+import tarfile
 import venv
+from abc import ABC, abstractmethod
+
+from tqdm import tqdm
+
+import requests
 from pathlib import Path
 
 import typer
 from typing_extensions import Annotated
-from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 dashboard_link = "https://zephyr-dashboard.renode.io"
 default_renode_artifacts_dir = Path.home() / ".config" / "renode"
 
-renode_target_dirname = "renode-run.download"
-renode_run_config_filename = "renode-run.path"
 renode_test_venv_dirname = "renode-run.venv"
 
 download_progress_delay = 1
@@ -30,6 +37,151 @@ global_artifacts_path = None
 artifacts_path_annotation = Annotated[Path, typer.Option("-a", "--artifacts_path", help='path for renode-run artifacts (e.g. config, Renode installations)')]
 
 app = typer.Typer()
+
+
+class Build(ABC):
+    def __init__(self, path):
+        self.path = pathlib.Path(path)
+        if not self.path.exists():
+            msg = f"Could not find file: {path}"
+            raise FileNotFoundError(msg)
+
+    @classmethod
+    @abstractmethod
+    def download(cls, target_dir, version=None, progress=None, *args, **kwargs):
+        ...
+
+    @classmethod
+    def _download_file(cls, address, progress=None):
+        r = requests.get(address, stream=progress is not None)
+        r.raise_for_status()
+
+        if progress is None:
+            return r.content
+
+        total_size = int(r.headers.get('content-length', 0))
+        block_size = 1024
+        progress_bar = progress(total_size)
+
+        chunks = []
+
+        for data in r.iter_content(block_size):
+            progress_bar.update(len(data))
+            chunks.append(data)
+
+        return b''.join(chunks)
+
+
+class ArchBuild(Build):
+    @classmethod
+    def download(cls, target_dir, version=None, progress=None, *args, **kwargs):
+        target_dir = pathlib.Path(target_dir)
+        to_download = "renode-latest.pkg.tar.xz" if version is None else f"renode-{version}-1-x86_64.pkg.tar.xz"
+        content = cls._download_file(f"https://builds.renode.io/{to_download}", progress)
+
+        pkgversion = cls.__extract_version(io.BytesIO(content))
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        file_name = f"renode_{pkgversion}-x86_64.pkg.tar.xz"
+        final_path = target_dir / file_name
+
+        final_path.write_bytes(content)
+
+        return cls(final_path)
+
+    @classmethod
+    def __extract_version(cls, fileobj):
+        with tarfile.open(fileobj=fileobj) as tar:
+            # extract version from .PKGINFO
+            pkginfo = [tuple(map(str.strip, x.decode().split("="))) for x in list(tar.extractfile(".PKGINFO")) if
+                       x[0] != '#']
+            pkgversion = next((x for x in pkginfo if x[0] == 'pkgver'))[1]
+
+        return pkgversion.partition("-")[0]
+
+
+class PortableBuild(Build):
+    def __init__(self, path):
+        super().__init__(path)
+        if not (self.path / "renode").exists():
+            msg = f"Renode not found in {path}"
+            raise FileNotFoundError(msg)
+
+    @classmethod
+    def download(cls, target_dir, version=None, progress=None, direct=False, *args, **kwargs):
+        target_dir = pathlib.Path(target_dir)
+        to_download = "renode-latest.linux-portable.tar.gz" if version is None else f"renode-{version}.linux-portable.tar.gz"
+        content = cls._download_file(f"https://builds.renode.io/{to_download}", progress)
+
+        with tarfile.open(fileobj=io.BytesIO(content)) as tar:
+            dir_name = tar.getmembers()[0].name
+            final_path = target_dir if direct else target_dir / dir_name
+
+            try:
+                return cls(final_path)
+            except FileNotFoundError:
+                pass
+
+            if direct:
+                cls.__direct_extract(target_dir, tar)
+            else:
+                cls.__extract(target_dir, tar)
+
+            return cls(final_path)
+
+    @classmethod
+    def __direct_extract(cls, path, tar):
+        members = tar.getmembers()
+        for member in members:
+            member.path = Path(*Path(member.path).parts[1:])
+
+        tar.extractall(path, members=members)
+
+    @classmethod
+    def __extract(cls, path, tar):
+        tar.extractall(path)
+
+
+class BuildFetcher:
+    BUILD_TYPES = {
+        "arch": ArchBuild,
+        "portable": PortableBuild,
+    }
+
+    def __init__(self, artifacts_dir, progress=None):
+        self.artifacts_dir = pathlib.Path(artifacts_dir)
+        self._progress = progress
+
+    def download(self, build_type='portable', target_dir=None, version=None, direct=False):
+        build_cls, config = self.__build_type_info(build_type)
+        target_dir = target_dir if target_dir else self.artifacts_dir / "renode-run.download"
+        build = build_cls.download(target_dir.resolve(), version, self._progress, direct=direct)
+
+        config.write_text(str(build.path))
+
+        return build
+
+    def fetch(self, build_type='portable', try_to_download=True):
+        build_cls, config = self.__build_type_info(build_type)
+
+        if config.exists():
+            build_path = pathlib.Path(config.read_text())
+
+            try:
+                return build_cls(build_path)
+            except FileNotFoundError as e:
+                pass
+
+        if try_to_download:
+            return self.download(build_type)
+
+    def __build_type_info(self, build_type):
+        return self.BUILD_TYPES[build_type], self.__get_config(build_type)
+
+    def __get_config(self, build_type):
+        return self.artifacts_dir / f"renode-run.{build_type}.path"
+
 
 class EnvBuilderWithRequirements(venv.EnvBuilder):
     def __init__(self, *args, **kwargs):
@@ -56,112 +208,25 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             exit(err.errorcode)
 
 
-def report_progress():
-    import time
-    import datetime
-
-    start_time = previous_time = time.time()
-
-    def aux(count, size, filesize):
-        nonlocal previous_time
-        current_time = time.time()
-
-        if previous_time + download_progress_delay > current_time and count != 0 and size * count < filesize:
-            return
-
-        previous_time = current_time
-        total = filesize / (1024 * 1024.0)
-        current = count * size * 1.0 / (1024 * 1024.0)
-        current = min(current, total)
-
-        time_elapsed = datetime.timedelta(seconds=current_time - start_time)
-        print(f"Downloaded {current:.2f}MB / {total:.2f}MB (time elapsed: {time_elapsed})...", end='\r')
-    return aux
-
-
-def download_renode(target_dir_path, config_path, version='latest', direct=False):
-    if not sys.platform.startswith('linux'):
-        raise Exception("Renode can only be automatically downloaded on Linux. On other OSes please visit https://builds.renode.io and install the latest package for your system.")
-
-    from urllib import request, error
-    import tarfile
-
-    print('Downloading Renode...')
-
-    try:
-        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress())
-    except error.HTTPError:
-        print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
-        sys.exit(1)
-
-    print()
-    print("Download finished!")
-
-    os.makedirs(target_dir_path, exist_ok=True)
-    try:
-        with tarfile.open(renode_package) as tar:
-            if direct:
-                # When the --direct argument is passed, we would like to
-                # extract contents of the archive directly to the path given by the user,
-                # and not into a new directory.
-                # Therefore we iterate over all files (paths) in the archive,
-                # and strip them from the first part, which is the renode_<version>
-                # directory.
-                final_path = target_dir_path
-                renode_bin_path = final_path / 'renode'
-                if Path.exists(renode_bin_path):
-                    print(f"Renode is already present in {target_dir_path}")
-                    return
-                members = tar.getmembers()
-                for member in members:
-                    old_member_path = Path(member.path).parts[1:]
-                    member.path = Path(*old_member_path)
-                tar.extractall(target_dir_path, members=members)
-            else:
-                renode_version = tar.members[0].name
-                final_path = target_dir_path / renode_version
-                if Path.exists(final_path):
-                    print(f"Renode {renode_version} is already available in {target_dir_path}, keeping the previous version")
-                    return
-                tar.extractall(target_dir_path)
-            print(f"Renode stored in {final_path}")
-
-        with open(config_path, mode="w") as config:
-            config.write(str(final_path))
-    finally:
-        os.remove(renode_package)
-
-
 def get_renode(artifacts_dir, try_to_download=True):
     # First, we try <artifacts_dir>, then we look in $PATH
-    renode_path = None
-    renode_run_config = artifacts_dir / renode_run_config_filename
-    if Path.exists(renode_run_config):
-        with open(renode_run_config, mode="r") as config:
-            renode_path = Path(config.read()) / "renode"
-            if Path.exists(renode_path):
-                print(f"Renode found in {renode_path}")
-                return str(renode_path)  # returning str to match the result of `which`
-            else:
-                print(f"Renode-run download listed in {renode_run_config}, but the target directory {renode_path} was not found. Looking in $PATH...")
-
     from shutil import which
     renode_path = which("renode")
 
-    if renode_path is None:
-        if try_to_download:
-            print('Renode not found. Downloading...')
-            renode_target_dir = artifacts_dir / renode_target_dirname
-            renode_run_config_path = artifacts_dir / renode_run_config_filename
-            download_renode(renode_target_dir, renode_run_config_path)
-            return get_renode(artifacts_dir, False)
-        else:
-            print("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
+    fetcher = BuildFetcher(artifacts_dir, lambda x: tqdm(total=x, unit='iB', unit_scale=True))
 
-    else:
-        print(f"Renode found in $PATH: {renode_path}. If you want to use the latest Renode version, consider running 'renode-run download'")
+    if (build := fetcher.fetch(try_to_download=False)) is not None:
+        return build.path / "renode"
 
-    return renode_path
+    if renode_path is not None:
+        return renode_path
+
+    if try_to_download and (build := fetcher.download()) is not None:
+        return build.path / "renode"
+
+    print("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
+
+    return None
 
 
 def generate_script(binary_name, platform, generate_repl):
@@ -238,15 +303,20 @@ def choose_artifacts_path(lower_priority_path, higher_priority_path):
 def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
-                     version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
+                     version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest',
+                     arch: Annotated[bool, typer.Option("--arch-pkg", help='whether Arch package should be installed')] = False):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     os.makedirs(artifacts_path, exist_ok=True)
-    renode_run_config_path = artifacts_path / renode_run_config_filename
     target_dir_path = path
-    if target_dir_path is None:
-        target_dir_path = artifacts_path / renode_target_dirname
-    download_renode(target_dir_path, renode_run_config_path, version, direct)
+    fetcher = BuildFetcher(artifacts_path, lambda x: tqdm(total=x, unit='iB', unit_scale=True))
+
+    fetcher.download(
+        build_type='arch' if arch else 'portable',
+        target_dir=target_dir_path,
+        version=None if version == 'latest' else version,
+        direct=direct
+    )
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
