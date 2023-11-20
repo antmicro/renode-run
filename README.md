@@ -31,7 +31,7 @@ renode-run -- --help
 Run Robot tests in Renode:
 
 ```
-renode-run test testname.robot
+renode-run test -- testname.robot
 ```
 
 Run a demo from [Renodepedia](https://zephyr-dashboard.renode.io/renodepedia/):
