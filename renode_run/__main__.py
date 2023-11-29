@@ -88,6 +88,8 @@ class ArchBuild(Build):
 
         final_path.write_bytes(content)
 
+        logger.info(f"Renode stored in {final_path}.")
+
         return cls(final_path)
 
     @classmethod
@@ -119,7 +121,9 @@ class PortableBuild(Build):
             final_path = target_dir if direct else target_dir / dir_name
 
             try:
-                return cls(final_path)
+                build = cls(final_path)
+                logger.info(f"Renode {dir_name} is already available in {final_path}, keeping the previous version.")
+                return build
             except FileNotFoundError:
                 pass
 
@@ -127,6 +131,8 @@ class PortableBuild(Build):
                 cls.__direct_extract(target_dir, tar)
             else:
                 cls.__extract(target_dir, tar)
+
+            logger.info(f"Renode stored in {final_path}.")
 
             return cls(final_path)
 
@@ -156,7 +162,12 @@ class BuildFetcher:
     def download(self, build_type='portable', target_dir=None, version=None, direct=False):
         build_cls, config = self.__build_type_info(build_type)
         target_dir = target_dir if target_dir else self.artifacts_dir / "renode-run.download"
-        build = build_cls.download(target_dir.resolve(), version, self._progress, direct=direct)
+
+        try:
+            build = build_cls.download(target_dir.resolve(), version, self._progress, direct=direct)
+        except Exception as e:
+            logger.error("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
+            raise e
 
         config.write_text(str(build.path))
 
@@ -169,11 +180,14 @@ class BuildFetcher:
             build_path = pathlib.Path(config.read_text())
 
             try:
-                return build_cls(build_path)
-            except FileNotFoundError as e:
-                pass
+                build = build_cls(build_path)
+                logger.info(f"Renode found in {build_path}")
+                return build
+            except FileNotFoundError:
+                logger.warning(f"Renode-run download listed in {config}, but the target directory {build_path} was not found.")
 
         if try_to_download:
+            logger.info(f"Downloading Renode...")
             return self.download(build_type)
 
     def __build_type_info(self, build_type):
@@ -429,6 +443,7 @@ def parse_artifacts_path(ctx: typer.Context, artifacts_path: artifacts_path_anno
 
 def main():
     # Cut off renode arguments after "--" and keep globally
+    logging.basicConfig(level=logging.INFO)
     global renode_args
     if "--" in sys.argv:
         index = sys.argv.index("--")
