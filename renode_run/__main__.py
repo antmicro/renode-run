@@ -48,7 +48,7 @@ class Build(ABC):
 
     @classmethod
     @abstractmethod
-    def download(cls, target_dir, version=None, progress=None, *args, **kwargs):
+    def download(cls, target_dir, version='latest', progress=None, *args, **kwargs):
         ...
 
     @classmethod
@@ -74,9 +74,9 @@ class Build(ABC):
 
 class ArchBuild(Build):
     @classmethod
-    def download(cls, target_dir, version=None, progress=None, *args, **kwargs):
+    def download(cls, target_dir, version='latest', progress=None, *args, **kwargs):
         target_dir = pathlib.Path(target_dir)
-        to_download = "renode-latest.pkg.tar.xz" if version is None else f"renode-{version}-1-x86_64.pkg.tar.xz"
+        to_download = "renode-latest.pkg.tar.xz" if version == 'latest' else f"renode-{version}-1-x86_64.pkg.tar.xz"
         content = cls._download_file(f"https://builds.renode.io/{to_download}", progress)
 
         pkgversion = cls.__extract_version(io.BytesIO(content))
@@ -111,9 +111,9 @@ class PortableBuild(Build):
             raise FileNotFoundError(msg)
 
     @classmethod
-    def download(cls, target_dir, version=None, progress=None, direct=False, *args, **kwargs):
+    def download(cls, target_dir, version='latest', progress=None, direct=False, *args, **kwargs):
         target_dir = pathlib.Path(target_dir)
-        to_download = "renode-latest.linux-portable.tar.gz" if version is None else f"renode-{version}.linux-portable.tar.gz"
+        to_download = "renode-latest.linux-portable.tar.gz" if version == 'latest' else f"renode-{version}.linux-portable.tar.gz"
         content = cls._download_file(f"https://builds.renode.io/{to_download}", progress)
 
         with tarfile.open(fileobj=io.BytesIO(content)) as tar:
@@ -159,7 +159,7 @@ class BuildFetcher:
         self.artifacts_dir = pathlib.Path(artifacts_dir)
         self._progress = progress
 
-    def download(self, build_type='portable', target_dir=None, version=None, direct=False):
+    def download(self, build_type='portable', target_dir=None, version='latest', direct=False):
         build_cls, config = self.__build_type_info(build_type)
         target_dir = target_dir if target_dir else self.artifacts_dir / "renode-run.download"
 
@@ -328,7 +328,7 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
     fetcher.download(
         build_type='arch' if arch else 'portable',
         target_dir=target_dir_path,
-        version=None if version == 'latest' else version,
+        version=version,
         direct=direct
     )
 
