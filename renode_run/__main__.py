@@ -9,6 +9,7 @@ import io
 import logging
 import os
 import pathlib
+import re
 import sys
 import tarfile
 import venv
@@ -45,6 +46,10 @@ class Build(ABC):
         if not self.path.exists():
             msg = f"Could not find file: {path}"
             raise FileNotFoundError(msg)
+
+    @property
+    def version(self):
+        return re.search("renode[-_](.*?)[-_]", self.path.name).group(1)
 
     @classmethod
     @abstractmethod
