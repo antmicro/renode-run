@@ -1,0 +1,34 @@
+# Copyright (c) 2022-2024 Antmicro <www.antmicro.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "renode-run"
+version = "0.1.0"
+authors = [{name = "Antmicro Ltd.", email = "contact@antmicro.com"}]
+description = "Download and run Renode without thinking about it"
+dependencies = [
+    "dts2repl @ git+https://github.com/antmicro/dts2repl@main#egg=dts2repl",
+    "requests",
+    "typer==0.9.*",
+]
+
+classifiers = [
+    'Environment :: Console',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: Apache Software License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Topic :: Utilities',
+]
+
+[project.scripts]
+renode-run = 'renode_run.__main__:main'
+
+[tool.setuptools]
+packages = ["renode_run"]
