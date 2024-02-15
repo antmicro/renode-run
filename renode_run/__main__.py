@@ -264,7 +264,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
     url = requests.get(f"{dashboard_link}/results-shell_module-all.json", "results.json")
     results = json.loads(url.text)
-    boards = [r["board_name"] for r in results]
+    boards = [r["platform"] for r in results]
 
     if board not in boards:
         print(f'Platform "{board}" not in Zephyr platforms list on server.')
