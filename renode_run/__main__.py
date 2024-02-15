@@ -16,6 +16,7 @@ from typing_extensions import Annotated
 from typing import Optional
 
 dashboard_link = "https://zephyr-dashboard.renode.io"
+new_dashboard_link = "https://new-zephyr-dashboard.renode.io"
 default_renode_artifacts_dir = Path.home() / ".config" / "renode"
 
 renode_target_dirname = "renode-run.download"
@@ -164,13 +165,21 @@ def get_renode(artifacts_dir, try_to_download=True):
     return renode_path
 
 
+def fetch_zephyr_version():
+    import requests
+    version = requests.get(f"{new_dashboard_link}/zephyr/latest")
+    return version.text.strip()
+
+
 def generate_script(binary_name, platform, generate_repl):
 
+    zephyr_version = None
     binary = binary_name
     if not os.path.exists(binary):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
         if binary[0:4] != 'http':
-            binary = f"{dashboard_link}/{platform}-{binary}/{platform}-zephyr-{binary}.elf"
+            zephyr_version = fetch_zephyr_version()
+            binary = f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary}/{binary}.elf"
     else:
         # We don't need to fetch the binary, but we still need to fetch additional resources like repl or dts.
         # Let's use the hello_world sample, as it's the most vanilla one.
@@ -178,8 +187,10 @@ def generate_script(binary_name, platform, generate_repl):
 
     repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
+        if not zephyr_version:
+            zephyr_version = fetch_zephyr_version()
         import urllib.request
-        urllib.request.urlretrieve(f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.dts", platform + ".dts")
+        urllib.request.urlretrieve(f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
         with open(platform + ".repl", 'w') as repl_file:
             from argparse import Namespace
             fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts", overlays = "")
