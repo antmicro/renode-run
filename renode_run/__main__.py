@@ -192,10 +192,8 @@ def generate_script(binary_name, platform, generate_repl):
         import urllib.request
         urllib.request.urlretrieve(f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
         with open(platform + ".repl", 'w') as repl_file:
-            from argparse import Namespace
-            fake_args = Namespace(filename=f"{os.getcwd()}/{platform}.dts", overlays = "")
             from dts2repl import dts2repl
-            repl_file.write(dts2repl.generate(fake_args))
+            repl_file.write(dts2repl.generate(Path.cwd() / f"{platform}.dts"))
         repl = platform + ".repl"
 
     script = f'''
