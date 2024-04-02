@@ -374,3 +374,7 @@ def main():
         renode_args = sys.argv[index+1:]
         sys.argv = sys.argv[:index]
     app()
+
+
+if __name__ == "__main__":
+    main()
