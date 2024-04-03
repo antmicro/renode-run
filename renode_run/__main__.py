@@ -6,6 +6,7 @@
 # Full license text is available in 'LICENSE'.
 #
 
+import functools
 import os
 import sys
 import venv
@@ -165,6 +166,7 @@ def get_renode(artifacts_dir, try_to_download=True):
     return renode_path
 
 
+@functools.lru_cache
 def fetch_zephyr_version():
     import requests
     version = requests.get(f"{new_dashboard_link}/zephyr/latest")
