@@ -173,12 +173,11 @@ def fetch_zephyr_version():
 
 def generate_script(binary_name, platform, generate_repl):
 
-    zephyr_version = None
+    zephyr_version = fetch_zephyr_version()
     binary = binary_name
     if not os.path.exists(binary):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
         if binary[0:4] != 'http':
-            zephyr_version = fetch_zephyr_version()
             binary = f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary}/{binary}.elf"
     else:
         # We don't need to fetch the binary, but we still need to fetch additional resources like repl or dts.
@@ -187,8 +186,6 @@ def generate_script(binary_name, platform, generate_repl):
 
     repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
-        if not zephyr_version:
-            zephyr_version = fetch_zephyr_version()
         import urllib.request
         urllib.request.urlretrieve(f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
         with open(platform + ".repl", 'w') as repl_file:
