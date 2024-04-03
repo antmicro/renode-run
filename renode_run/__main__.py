@@ -16,8 +16,7 @@ import typer
 from typing_extensions import Annotated
 from typing import Optional
 
-dashboard_link = "https://zephyr-dashboard.renode.io"
-new_dashboard_link = "https://new-zephyr-dashboard.renode.io"
+dashboard_link = "https://new-zephyr-dashboard.renode.io"
 default_renode_artifacts_dir = Path.home() / ".config" / "renode"
 
 renode_target_dirname = "renode-run.download"
@@ -169,7 +168,14 @@ def get_renode(artifacts_dir, try_to_download=True):
 @functools.lru_cache
 def fetch_zephyr_version():
     import requests
-    version = requests.get(f"{new_dashboard_link}/zephyr/latest")
+    version = requests.get(f"{dashboard_link}/zephyr_sim/latest")
+    return version.text.strip()
+
+
+@functools.lru_cache
+def fetch_renode_version():
+    import requests
+    version = requests.get(f"{dashboard_link}/zephyr_sim/{fetch_zephyr_version()}/latest")
     return version.text.strip()
 
 
@@ -180,20 +186,22 @@ def generate_script(binary_name, platform, generate_repl):
     if not os.path.exists(binary):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
         if binary[0:4] != 'http':
-            binary = f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary}/{binary}.elf"
+            binary = f"{dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary}/{binary}.elf"
     else:
         # We don't need to fetch the binary, but we still need to fetch additional resources like repl or dts.
         # Let's use the hello_world sample, as it's the most vanilla one.
         binary_name = 'hello_world'
 
-    repl = f"{dashboard_link}/{platform}-{binary_name}/{platform}-{binary_name}.repl"
     if generate_repl:
         import urllib.request
-        urllib.request.urlretrieve(f"{new_dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
+        urllib.request.urlretrieve(f"{dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
         with open(platform + ".repl", 'w') as repl_file:
             from dts2repl import dts2repl
             repl_file.write(dts2repl.generate(Path.cwd() / f"{platform}.dts"))
         repl = platform + ".repl"
+    else:
+        renode_version = fetch_renode_version()
+        repl = f"{dashboard_link}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.repl"
 
     script = f'''
 
@@ -270,7 +278,9 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
     import tempfile
     import subprocess
 
-    url = requests.get(f"{dashboard_link}/results-shell_module-all.json", "results.json")
+    zephyr_version = fetch_zephyr_version()
+    renode_version = fetch_renode_version()
+    url = requests.get(f"{dashboard_link}/zephyr_sim/{zephyr_version}/{renode_version}/results-shell_module-all.json", "results.json")
     results = json.loads(url.text)
     boards = [r["platform"] for r in results]
 
