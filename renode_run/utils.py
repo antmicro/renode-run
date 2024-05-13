@@ -3,7 +3,15 @@
 import functools
 import requests
 
+from enum import StrEnum
+
 from renode_run.defaults import DASHBOARD_LINK, DEFAULT_RENODE_ARTIFACTS_DIR
+
+
+class RenodeVariant(StrEnum):
+    DOTNET_PORTABLE = "dotnet-portable"
+    MONO_PORTABLE = "mono-portable"
+
 
 def choose_artifacts_path(lower_priority_path, higher_priority_path):
     if higher_priority_path is not None:

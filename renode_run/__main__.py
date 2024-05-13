@@ -21,6 +21,7 @@ from typing_extensions import Annotated
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode
+from renode_run.utils import RenodeVariant
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 
 renode_args = []
@@ -57,15 +58,19 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
 def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
+                     renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE,
                      version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     os.makedirs(artifacts_path, exist_ok=True)
-    renode_run_config_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
-    target_dir_path = path
-    if target_dir_path is None:
-        target_dir_path = artifacts_path / RENODE_TARGET_DIRNAME
-    download_renode(target_dir_path, renode_run_config_path, version, direct)
+
+    download_renode(
+        target_dir_path=path or artifacts_path / RENODE_TARGET_DIRNAME,
+        config_path=artifacts_path / RENODE_RUN_CONFIG_FILENAME,
+        renode_variant=renode_variant,
+        version=version,
+        direct=direct,
+    )
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
