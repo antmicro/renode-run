@@ -6,12 +6,16 @@
 # Full license text is available in 'LICENSE'.
 #
 
+import json
 import os
+import requests
+import subprocess
 import sys
-import venv
-from pathlib import Path
-
+import tempfile
 import typer
+import venv
+
+from pathlib import Path
 from typing_extensions import Annotated
 
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
@@ -34,8 +38,6 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
     def post_setup(self, context):
         if self.requirements_path is None:
             return
-
-        import subprocess
 
         args = [context.env_exe, '-m', 'pip', 'install', '-r', self.requirements_path]
         env = os.environ
@@ -74,10 +76,6 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
                  generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
-    import json
-    import requests
-    import tempfile
-    import subprocess
 
     zephyr_version = fetch_zephyr_version()
     renode_version = fetch_renode_version()
@@ -114,8 +112,6 @@ def exec_command(artifacts_path: artifacts_path_annotation = None):
     if renode is None:
         sys.exit(1)
 
-    import subprocess
-
     sys.stdout.flush()
     ret = subprocess.run([renode] + renode_args)
     sys.exit(ret.returncode)
@@ -142,8 +138,6 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
             sys.exit(1)
 
         print('test.sh script found, using it instead of renode-test')
-
-    import subprocess
 
     if venv_path is None:
         venv_path = artifacts_path / RENODE_TEST_VENV_DIRNAME
