@@ -1,3 +1,5 @@
+# Copyright (c) 2024 Antmicro
+
 import functools
 import requests
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2024 Antmicro
+
 import datetime
 import os
 import sys
