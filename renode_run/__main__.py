@@ -6,7 +6,6 @@
 # Full license text is available in 'LICENSE'.
 #
 
-import functools
 import os
 import sys
 import venv
@@ -14,19 +13,13 @@ from pathlib import Path
 
 import typer
 from typing_extensions import Annotated
-from typing import Optional
 
-dashboard_link = "https://new-zephyr-dashboard.renode.io"
-default_renode_artifacts_dir = Path.home() / ".config" / "renode"
-
-renode_target_dirname = "renode-run.download"
-renode_run_config_filename = "renode-run.path"
-renode_test_venv_dirname = "renode-run.venv"
-
-download_progress_delay = 1
+from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
+from renode_run.generate import generate_script
+from renode_run.get import download_renode, get_renode
+from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 
 renode_args = []
-global_artifacts_path = None
 
 artifacts_path_annotation = Annotated[Path, typer.Option("-a", "--artifacts_path", help='path for renode-run artifacts (e.g. config, Renode installations)')]
 
@@ -57,198 +50,6 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             exit(err.errorcode)
 
 
-def report_progress():
-    import time
-    import datetime
-
-    start_time = previous_time = time.time()
-
-    def aux(count, size, filesize):
-        nonlocal previous_time
-        current_time = time.time()
-
-        if previous_time + download_progress_delay > current_time and count != 0 and size * count < filesize:
-            return
-
-        previous_time = current_time
-        total = filesize / (1024 * 1024.0)
-        current = count * size * 1.0 / (1024 * 1024.0)
-        current = min(current, total)
-
-        time_elapsed = datetime.timedelta(seconds=current_time - start_time)
-        print(f"Downloaded {current:.2f}MB / {total:.2f}MB (time elapsed: {time_elapsed})...", end='\r')
-    return aux
-
-
-def download_renode(target_dir_path, config_path, version='latest', direct=False):
-    if not sys.platform.startswith('linux'):
-        raise Exception("Renode can only be automatically downloaded on Linux. On other OSes please visit https://builds.renode.io and install the latest package for your system.")
-
-    from urllib import request, error
-    import tarfile
-
-    print('Downloading Renode...')
-
-    try:
-        renode_package, _ = request.urlretrieve(f"https://builds.renode.io/renode-{version}.linux-portable.tar.gz", reporthook=report_progress())
-    except error.HTTPError:
-        print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
-        sys.exit(1)
-
-    print()
-    print("Download finished!")
-
-    os.makedirs(target_dir_path, exist_ok=True)
-    try:
-        with tarfile.open(renode_package) as tar:
-            if direct:
-                # When the --direct argument is passed, we would like to
-                # extract contents of the archive directly to the path given by the user,
-                # and not into a new directory.
-                # Therefore we iterate over all files (paths) in the archive,
-                # and strip them from the first part, which is the renode_<version>
-                # directory.
-                final_path = target_dir_path
-                renode_bin_path = final_path / 'renode'
-                if Path.exists(renode_bin_path):
-                    print(f"Renode is already present in {target_dir_path}")
-                    return
-                members = tar.getmembers()
-                for member in members:
-                    old_member_path = Path(member.path).parts[1:]
-                    member.path = Path(*old_member_path)
-                tar.extractall(target_dir_path, members=members)
-            else:
-                renode_version = tar.members[0].name
-                final_path = target_dir_path / renode_version
-                if Path.exists(final_path):
-                    print(f"Renode {renode_version} is already available in {target_dir_path}, keeping the previous version")
-                    return
-                tar.extractall(target_dir_path)
-            print(f"Renode stored in {final_path}")
-
-        with open(config_path, mode="w") as config:
-            config.write(str(final_path))
-    finally:
-        os.remove(renode_package)
-
-
-def get_renode(artifacts_dir, try_to_download=True):
-    # First, we try <artifacts_dir>, then we look in $PATH
-    renode_path = None
-    renode_run_config = artifacts_dir / renode_run_config_filename
-    if Path.exists(renode_run_config):
-        with open(renode_run_config, mode="r") as config:
-            renode_path = Path(config.read()) / "renode"
-            if Path.exists(renode_path):
-                print(f"Renode found in {renode_path}")
-                return str(renode_path)  # returning str to match the result of `which`
-            else:
-                print(f"Renode-run download listed in {renode_run_config}, but the target directory {renode_path} was not found. Looking in $PATH...")
-
-    from shutil import which
-    renode_path = which("renode")
-
-    if renode_path is None:
-        if try_to_download:
-            print('Renode not found. Downloading...')
-            renode_target_dir = artifacts_dir / renode_target_dirname
-            renode_run_config_path = artifacts_dir / renode_run_config_filename
-            download_renode(renode_target_dir, renode_run_config_path)
-            return get_renode(artifacts_dir, False)
-        else:
-            print("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
-
-    else:
-        print(f"Renode found in $PATH: {renode_path}. If you want to use the latest Renode version, consider running 'renode-run download'")
-
-    return renode_path
-
-
-@functools.lru_cache
-def fetch_zephyr_version():
-    import requests
-    version = requests.get(f"{dashboard_link}/zephyr_sim/latest")
-    return version.text.strip()
-
-
-@functools.lru_cache
-def fetch_renode_version():
-    import requests
-    version = requests.get(f"{dashboard_link}/zephyr_sim/{fetch_zephyr_version()}/latest")
-    return version.text.strip()
-
-
-def generate_script(binary_name, platform, generate_repl):
-
-    zephyr_version = fetch_zephyr_version()
-    binary = binary_name
-    if not os.path.exists(binary):
-        print(f"Binary name `{binary}` is not a local file, trying remote.")
-        if binary[0:4] != 'http':
-            binary = f"{dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary}/{binary}.elf"
-    else:
-        # We don't need to fetch the binary, but we still need to fetch additional resources like repl or dts.
-        # Let's use the hello_world sample, as it's the most vanilla one.
-        binary_name = 'hello_world'
-
-    if generate_repl:
-        import urllib.request
-        urllib.request.urlretrieve(f"{dashboard_link}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
-        with open(platform + ".repl", 'w') as repl_file:
-            from dts2repl import dts2repl
-            repl_file.write(dts2repl.generate(Path.cwd() / f"{platform}.dts"))
-        repl = platform + ".repl"
-    else:
-        renode_version = fetch_renode_version()
-        repl = f"{dashboard_link}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.repl"
-
-    script = f'''
-
-using sysbus
-mach create "{platform}"
-
-machine LoadPlatformDescription @{repl}
-
-python
-"""
-from Antmicro.Renode.Peripherals.UART import IUART
-uarts = self.Machine.GetPeripheralsOfType[IUART]()
-
-shown = dict()
-
-def bind_function(uartName):
-    def func(char):
-        if uartName not in shown:
-            monitor.Parse("showAnalyzer "+uartName)
-        shown[uartName] = True
-    return func
-
-for uart in uarts:
-    uartName = clr.Reference[str]()
-    self.Machine.TryGetAnyName(uart, uartName)
-    onReceived = bind_function(uartName.Value)
-    uart.CharReceived += onReceived
-"""
-
-macro reset
-"""
-    sysbus LoadELF @{binary}
-"""
-
-runMacro $reset
-echo "Use 'start' to run the demo"'''
-    return script
-
-
-def choose_artifacts_path(lower_priority_path, higher_priority_path):
-    if higher_priority_path is not None:
-        return higher_priority_path
-    if lower_priority_path is not None:
-        return lower_priority_path
-    return default_renode_artifacts_dir
-
-
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("download", help="download Renode portable (Linux only!)")
 def download_command(artifacts_path: artifacts_path_annotation = None,
@@ -258,10 +59,10 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     os.makedirs(artifacts_path, exist_ok=True)
-    renode_run_config_path = artifacts_path / renode_run_config_filename
+    renode_run_config_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
     target_dir_path = path
     if target_dir_path is None:
-        target_dir_path = artifacts_path / renode_target_dirname
+        target_dir_path = artifacts_path / RENODE_TARGET_DIRNAME
     download_renode(target_dir_path, renode_run_config_path, version, direct)
 
 
@@ -280,7 +81,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
     zephyr_version = fetch_zephyr_version()
     renode_version = fetch_renode_version()
-    url = requests.get(f"{dashboard_link}/zephyr_sim/{zephyr_version}/{renode_version}/results-shell_module-all.json", "results.json")
+    url = requests.get(f"{DASHBOARD_LINK}/zephyr_sim/{zephyr_version}/{renode_version}/results-shell_module-all.json", "results.json")
     results = json.loads(url.text)
     boards = [r["platform"] for r in results]
 
@@ -343,10 +144,9 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
         print('test.sh script found, using it instead of renode-test')
 
     import subprocess
-    import venv
 
     if venv_path is None:
-        venv_path = artifacts_path / renode_test_venv_dirname
+        venv_path = artifacts_path / RENODE_TEST_VENV_DIRNAME
 
     python_bin = venv_path / 'bin'
     python_path = python_bin / 'python'
