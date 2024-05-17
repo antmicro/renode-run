@@ -45,10 +45,9 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
 
     print(f"Downloading Renode ({renode_variant.value})...")
 
-    match renode_variant:
-        case RenodeVariant.MONO_PORTABLE:
+    if renode_variant == RenodeVariant.MONO_PORTABLE:
             package_name = f"renode-{version}.linux-portable.tar.gz"
-        case RenodeVariant.DOTNET_PORTABLE:
+    elif renode_variant == RenodeVariant.DOTNET_PORTABLE:
             package_name = f"renode-{version}.linux-portable-dotnet.tar.gz"
 
     try:
