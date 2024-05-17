@@ -12,8 +12,8 @@ from pathlib import Path
 from shutil import which
 from urllib import request, error
 
-from renode_run.defaults import RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
-from renode_run.utils import RenodeVariant
+from renode_run.defaults import GLOBAL_ARTIFACTS_PATH, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
+from renode_run.utils import RenodeVariant, choose_artifacts_path
 
 
 DOWNLOAD_PROGRESS_DELAY = 1
@@ -112,6 +112,16 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
 
     finally:
         os.remove(renode_package)
+
+
+def get_default_renode_path(artifacts_path=None, variant=RenodeVariant.MONO_PORTABLE, try_to_download=True, use_system_renode=True):
+    artifacts_path = choose_artifacts_path(GLOBAL_ARTIFACTS_PATH, artifacts_path)
+    return get_renode(
+        artifacts_dir=artifacts_path,
+        variant=variant,
+        try_to_download=try_to_download,
+        use_system_renode=use_system_renode,
+    )
 
 
 def get_renode(artifacts_dir, variant=RenodeVariant.MONO_PORTABLE, try_to_download=True, use_system_renode=True):
