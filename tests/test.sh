@@ -71,7 +71,7 @@ test_default_behaviour_with_custom_artifacts_path()
 test_default_behaviour_with_renode_dotnet_portable()
 {
   renode-run download --renode-variant dotnet-portable
-  renode-run -- --console --disable-xwt --plain -e "q"
+  renode-run --renode-variant dotnet-portable -- --console --disable-xwt --plain -e "q"
   assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
   delete_test_files
 }
