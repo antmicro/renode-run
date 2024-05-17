@@ -78,7 +78,8 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
 def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')],
                  binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
                  artifacts_path: artifacts_path_annotation = None,
-                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False):
+                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False,
+                 renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
 
@@ -94,7 +95,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
         print('Choose one of the platforms listed above and try again.')
         sys.exit(1)
 
-    renode_path = get_renode(artifacts_path)
+    renode_path = get_renode(artifacts_path, renode_variant)
 
     if renode_path is None:
         sys.exit(1)
@@ -110,10 +111,11 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("exec", help="execute Renode with arguments")
-def exec_command(artifacts_path: artifacts_path_annotation = None):
+def exec_command(artifacts_path: artifacts_path_annotation = None, 
+                 renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
-    renode = get_renode(artifacts_path)
+    renode = get_renode(artifacts_path, renode_variant)
     if renode is None:
         sys.exit(1)
 
@@ -125,10 +127,11 @@ def exec_command(artifacts_path: artifacts_path_annotation = None):
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("test", help="execute renode-test with arguments")
 def test_command(artifacts_path: artifacts_path_annotation = None,
-                 venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None):
+                 venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None,
+                 renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
-    renode = get_renode(artifacts_path)
+    renode = get_renode(artifacts_path, renode_variant)
     if renode is None:
         sys.exit(1)
 
@@ -166,12 +169,14 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
 
 # Calling renode-run without arguments runs renode from default path
 @app.callback(invoke_without_command=True)
-def parse_artifacts_path(ctx: typer.Context, artifacts_path: artifacts_path_annotation = None):
+def parse_artifacts_path(ctx: typer.Context,
+                         artifacts_path: artifacts_path_annotation = None,
+                         renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
     # For backward compatibility we're allowing to pass artifacts_path before specifying the command
     global global_artifacts_path
     global_artifacts_path = artifacts_path
     if ctx.invoked_subcommand is None:
-        exec_command()
+        exec_command(artifacts_path, renode_variant)
 
 
 def main():
