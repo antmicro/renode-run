@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-DASHBOARD_LINK = "https://new-zephyr-dashboard.renode.io"
+DASHBOARD_LINK = "https://zephyr-dashboard.renode.io"
 
 DEFAULT_RENODE_ARTIFACTS_DIR = Path.home() / ".config" / "renode"
 
