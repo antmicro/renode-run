@@ -34,7 +34,7 @@ Run Robot tests in Renode:
 renode-run test -- testname.robot
 ```
 
-Run a demo from [Renodepedia](https://zephyr-dashboard.renode.io/renodepedia/):
+Run a demo from [Antmicro Designer](https://designer.antmicro.com):
 
 ```
 renode-run demo --board 96b_nitrogen shell_module
