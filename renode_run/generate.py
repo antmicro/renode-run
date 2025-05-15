@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Antmicro
+# Copyright (c) 2025 Antmicro
 
 import os
 import sys
