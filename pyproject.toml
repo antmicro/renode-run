@@ -13,7 +13,7 @@ authors = [{name = "Antmicro Ltd.", email = "contact@antmicro.com"}]
 description = "Download and run Renode without thinking about it"
 dependencies = [
     "dts2repl @ git+https://github.com/antmicro/dts2repl@main#egg=dts2repl",
-    "requests",
+    "requests==2.*",
     "typer==0.15.*",
 ]
 
