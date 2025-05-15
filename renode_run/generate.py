@@ -1,6 +1,8 @@
 # Copyright (c) 2024 Antmicro
 
 import os
+import sys
+import requests
 import urllib.request
 
 from pathlib import Path
@@ -10,45 +12,20 @@ from renode_run.defaults import DASHBOARD_LINK
 from renode_run.utils import fetch_renode_version, fetch_zephyr_version
 
 
-template_script = '''
-using sysbus
-mach create "{platform}"
+script_prepend = '''# renode-run prepend
+$bin=@{binary}
+$repl=@{repl}
 
-machine LoadPlatformDescription @{repl}
+'''
 
-python
-"""
-from Antmicro.Renode.Peripherals.UART import IUART
-uarts = self.Machine.GetPeripheralsOfType[IUART]()
-
-shown = dict()
-
-def bind_function(uartName):
-    def func(char):
-        if uartName not in shown:
-            monitor.Parse("showAnalyzer "+uartName)
-        shown[uartName] = True
-    return func
-
-for uart in uarts:
-    uartName = clr.Reference[str]()
-    self.Machine.TryGetAnyName(uart, uartName)
-    onReceived = bind_function(uartName.Value)
-    uart.CharReceived += onReceived
-"""
-
-macro reset
-"""
-    sysbus LoadELF @{binary}
-"""
-
-runMacro $reset
+script_append = '''
 echo "Use 'start' to run the demo"
 '''
 
 
 def generate_script(binary_name, platform, generate_repl):
     zephyr_version = fetch_zephyr_version()
+    renode_version = fetch_renode_version()
     binary = binary_name
     if not os.path.exists(binary):
         print(f"Binary name `{binary}` is not a local file, trying remote.")
@@ -65,9 +42,15 @@ def generate_script(binary_name, platform, generate_repl):
             repl_file.write(dts2repl.generate(Path.cwd() / f"{platform}.dts"))
         repl = platform + ".repl"
     else:
-        renode_version = fetch_renode_version()
         repl = f"{DASHBOARD_LINK}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.repl"
 
-    script = template_script.format(platform=platform, repl=repl, binary=binary)
+    resc_resp = requests.get(f"{DASHBOARD_LINK}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.resc")
+    if resc_resp.status_code == 200:
+        dash_script = resc_resp.content.decode("UTF-8")
+    else:
+        print(f"Error: Unable to retrieve the Renode script for sample '{binary_name}'.", file=sys.stderr)
+        exit(1)
+
+    script = f"{script_prepend.format(binary=binary, repl=repl)}{dash_script}{script_append}"
 
     return script
