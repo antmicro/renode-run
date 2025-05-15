@@ -1,12 +1,28 @@
-Test:
-  image: ubuntu:20.04
+.common: &common
   tags: ['ace-x86_64']
   variables:
     DEBIAN_FRONTEND: "noninteractive"
   before_script:
-    - apt -qqy update > /dev/null 2> /dev/null
-    - apt -qqy install curl git python3 python3-pip python3-venv libicu66 > /dev/null 2> /dev/null
+    - apt -qqy update > /dev/null
+    - apt -qqy install curl git python3 python3-pip python3-venv libicu-dev > /dev/null
   script:
+    - python3 -V
     - python3 -m venv .venv && source .venv/bin/activate
     - pip3 install .
     - ./tests/test.sh
+
+Debian Bullseye (python3.9):
+  <<: *common
+  image: debian:bullseye
+
+Debian Bookworm (python3.11):
+  <<: *common
+  image: debian:bookworm
+
+Ubuntu 20.04 (python3.8):
+  <<: *common
+  image: ubuntu:20.04
+
+Ubuntu 25.04 (python3.13):
+  <<: *common
+  image: ubuntu:25.04
