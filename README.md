@@ -1,6 +1,6 @@
 # renode-run
 
-Copyright (c) 2022-2025 [Antmicro](https://www.antmicro.com/)
+Copyright (c) 2022-2026 [Antmicro](https://www.antmicro.com/)
 
 ## Usage
 
