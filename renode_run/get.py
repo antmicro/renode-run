@@ -1,4 +1,4 @@
-# Copyright (c) 2025 Antmicro
+# Copyright (c) 2026 Antmicro
 
 import datetime
 import json
@@ -46,9 +46,9 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
     print(f"Downloading Renode ({renode_variant.value})...")
 
     if renode_variant == RenodeVariant.MONO_PORTABLE:
-            package_name = f"renode-{version}.linux-portable.tar.gz"
+            package_name = f"renode-{version}.linux-mono-portable.tar.gz"
     elif renode_variant == RenodeVariant.DOTNET_PORTABLE:
-            package_name = f"renode-{version}.linux-portable-dotnet.tar.gz"
+            package_name = f"renode-{version}.linux-portable.tar.gz"
 
     try:
         renode_package, _ = request.urlretrieve(f"https://builds.renode.io/{package_name}", reporthook=_report_progress())

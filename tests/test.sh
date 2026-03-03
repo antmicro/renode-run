@@ -102,12 +102,12 @@ test_downloadinng_to_selected_location()
 
 test_downloading_selected_renode_version()
 {
-  local RENODE_VERSION=1.13.3+20230322git94d85c55 
-  local RENODE_VERSION_COMMIT=${RENODE_VERSION: -8}
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  local RENODE_VERSION_COMMIT=${RENODE_VERSION: -9:8}
   local RENODE_VERSION_NUMBER=${RENODE_VERSION:0:6}
   renode-run download $RENODE_VERSION
   assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-$RENODE_VERSION/renode"
-  if ! renode-run -- --version | grep -q "Renode, version $RENODE_VERSION_NUMBER.*($RENODE_VERSION_COMMIT.*)"
+  if ! [ $(renode-run -- --version | grep -c -e "Renode v$RENODE_VERSION_NUMBER" -e "build: $RENODE_VERSION_COMMIT") == 2 ]
   then
     echo "Downloaded renode version doesn't match"
     exit 1
