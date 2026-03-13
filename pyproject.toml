@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2025 Antmicro <www.antmicro.com>
+# Copyright (c) 2022-2026 Antmicro <www.antmicro.com>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "renode-run"
-version = "0.1.0"
+version = "0.2.0"
 authors = [{name = "Antmicro Ltd.", email = "contact@antmicro.com"}]
 description = "Download and run Renode without thinking about it"
 dependencies = [
