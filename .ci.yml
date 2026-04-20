@@ -19,10 +19,6 @@ Debian Bookworm (python3.11):
   <<: *common
   image: debian:bookworm
 
-Ubuntu 20.04 (python3.8):
-  <<: *common
-  image: ubuntu:20.04
-
 Ubuntu 25.04 (python3.13):
   <<: *common
   image: ubuntu:25.04
