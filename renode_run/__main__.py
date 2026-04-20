@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2022-2025 Antmicro
+# Copyright (c) 2022-2026 Antmicro
 #
 # This file is licensed under the Apache License.
 # Full license text is available in 'LICENSE'.
@@ -58,7 +58,7 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
 def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
-                     renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE,
+                     renode_variant: RenodeVariant = RenodeVariant.default(),
                      version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
@@ -79,7 +79,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
                  binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
                  artifacts_path: artifacts_path_annotation = None,
                  generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False,
-                 renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
+                 renode_variant: RenodeVariant = RenodeVariant.default()):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
 
@@ -112,7 +112,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("exec", help="execute Renode with arguments")
 def exec_command(artifacts_path: artifacts_path_annotation = None, 
-                 renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
+                 renode_variant: RenodeVariant = RenodeVariant.default()):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     renode = get_renode(artifacts_path, renode_variant)
@@ -128,7 +128,7 @@ def exec_command(artifacts_path: artifacts_path_annotation = None,
 @app.command("test", help="execute renode-test with arguments")
 def test_command(artifacts_path: artifacts_path_annotation = None,
                  venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None,
-                 renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
+                 renode_variant: RenodeVariant = RenodeVariant.default()):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     renode = get_renode(artifacts_path, renode_variant)
@@ -171,7 +171,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
 @app.callback(invoke_without_command=True)
 def parse_artifacts_path(ctx: typer.Context,
                          artifacts_path: artifacts_path_annotation = None,
-                         renode_variant: RenodeVariant = RenodeVariant.MONO_PORTABLE):
+                         renode_variant: RenodeVariant = RenodeVariant.default()):
     # For backward compatibility we're allowing to pass artifacts_path before specifying the command
     global global_artifacts_path
     global_artifacts_path = artifacts_path

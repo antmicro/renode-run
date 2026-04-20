@@ -55,7 +55,7 @@ run_test()
 test_default_behaviour()
 {
   renode-run -- --console --disable-xwt --plain -e "q"
-  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-*"
+  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
   delete_test_files
 }
 
@@ -64,29 +64,21 @@ test_default_behaviour()
 test_default_behaviour_with_custom_artifacts_path()
 {
   renode-run -a $TEST_ARTIFACTS_PATH -- --console --disable-xwt --plain -e "q"
-  assert_path_exists "$TEST_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-*"
-  delete_test_files
-}
-
-test_default_behaviour_with_renode_dotnet_portable()
-{
-  renode-run download --renode-variant dotnet-portable
-  renode-run --renode-variant dotnet-portable -- --console --disable-xwt --plain -e "q"
-  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
+  assert_path_exists "$TEST_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
   delete_test_files
 }
 
 test_using_exec_command_explicitly()
 {
   renode-run exec -- --console --disable-xwt --plain -e "q"
-  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-*"
+  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
   delete_test_files
 }
 
 test_downloading_to_default_location()
 {
   renode-run download
-  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-*"
+  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
   renode-run -- --console --disable-xwt --plain -e "q"
   delete_test_files
 }
@@ -94,7 +86,7 @@ test_downloading_to_default_location()
 test_downloadinng_to_selected_location()
 {
   renode-run download --path $TEST_DOWNLOAD_PATH
-  assert_path_exists "$TEST_DOWNLOAD_PATH/mono-portable/renode-*"
+  assert_path_exists "$TEST_DOWNLOAD_PATH/dotnet-portable/renode-*"
   #Renode installation is one directory above $TEST_DOWNLOAD_PATH so it has to be passed as artifacts path.
   renode-run -a $TEST_DOWNLOAD_PATH/.. -- --console --disable-xwt --plain -e "q"
   delete_test_files
@@ -106,7 +98,7 @@ test_downloading_selected_renode_version()
   local RENODE_VERSION_COMMIT=${RENODE_VERSION: -9:8}
   local RENODE_VERSION_NUMBER=${RENODE_VERSION:0:6}
   renode-run download $RENODE_VERSION
-  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-$RENODE_VERSION/renode"
+  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-$RENODE_VERSION/renode"
   if ! [ $(renode-run -- --version | grep -c -e "Renode v$RENODE_VERSION_NUMBER" -e "build: $RENODE_VERSION_COMMIT") == 2 ]
   then
     echo "Downloaded renode version doesn't match"
@@ -127,7 +119,7 @@ test_downloading_without_creating_directories_for_versions()
 test_running_renode-test()
 {
   renode-run download
-  local ROBOT_TEST_PATH="$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-*/$ROBOT_TEST"
+  local ROBOT_TEST_PATH="$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*/$ROBOT_TEST"
   renode-run test -- $ROBOT_TEST_PATH
   assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.venv/pyvenv.cfg"
   delete_test_files
@@ -136,7 +128,7 @@ test_running_renode-test()
 test_using_custom_venv_directory()
 {
   renode-run download
-  local ROBOT_TEST_PATH="$DEFAULT_ARTIFACTS_PATH/renode-run.download/mono-portable/renode-*/$ROBOT_TEST"
+  local ROBOT_TEST_PATH="$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*/$ROBOT_TEST"
   renode-run test --venv $TEST_VENV_PATH -- $ROBOT_TEST_PATH
   assert_path_exists "$TEST_VENV_PATH/pyvenv.cfg"
   delete_test_files
@@ -169,7 +161,6 @@ run_tests()
 {
   run_test test_default_behaviour
   run_test test_default_behaviour_with_custom_artifacts_path
-  run_test test_default_behaviour_with_renode_dotnet_portable
   run_test test_using_exec_command_explicitly
   run_test test_downloading_to_default_location
   run_test test_downloadinng_to_selected_location

@@ -118,7 +118,7 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
         os.remove(renode_package)
 
 
-def get_default_renode_path(artifacts_path=None, variant=RenodeVariant.MONO_PORTABLE, try_to_download=True, use_system_renode=True):
+def get_default_renode_path(artifacts_path=None, variant=RenodeVariant.default(), try_to_download=True, use_system_renode=True):
     artifacts_path = choose_artifacts_path(GLOBAL_ARTIFACTS_PATH, artifacts_path)
     return get_renode(
         artifacts_dir=artifacts_path,
@@ -128,7 +128,7 @@ def get_default_renode_path(artifacts_path=None, variant=RenodeVariant.MONO_PORT
     )
 
 
-def get_renode(artifacts_dir, variant=RenodeVariant.MONO_PORTABLE, try_to_download=True, use_system_renode=True):
+def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=True, use_system_renode=True):
     # First, we try <artifacts_dir>, then we look in $PATH
     renode_path = None
     renode_run_config = artifacts_dir / RENODE_RUN_CONFIG_FILENAME

@@ -17,6 +17,10 @@ class RenodeVariant(str, Enum):
     DOTNET_PORTABLE = "dotnet-portable"
     MONO_PORTABLE = "mono-portable"
 
+    @staticmethod
+    def default():
+        return RenodeVariant.DOTNET_PORTABLE
+
 
 def choose_artifacts_path(lower_priority_path, higher_priority_path):
     if higher_priority_path is not None:
