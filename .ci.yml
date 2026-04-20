@@ -1,4 +1,4 @@
-.common: &common
+.common-linux: &common_linux
   tags: ['ace-x86_64']
   variables:
     DEBIAN_FRONTEND: "noninteractive"
@@ -12,13 +12,13 @@
     - ./tests/test.sh
 
 Debian Bullseye (python3.9):
-  <<: *common
+  <<: *common_linux
   image: debian:bullseye
 
 Debian Bookworm (python3.11):
-  <<: *common
+  <<: *common_linux
   image: debian:bookworm
 
 Ubuntu 25.04 (python3.13):
-  <<: *common
+  <<: *common_linux
   image: ubuntu:25.04
