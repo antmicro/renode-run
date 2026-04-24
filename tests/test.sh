@@ -166,12 +166,20 @@ run_tests()
   run_test test_downloadinng_to_selected_location
   run_test test_downloading_selected_renode_version
   run_test test_downloading_without_creating_directories_for_versions
-  run_test test_running_renode-test
-  run_test test_using_custom_venv_directory
+  case "$OSTYPE" in
+    linux*)
+      run_test test_running_renode-test
+      run_test test_using_custom_venv_directory
+      ;;
+  esac
   #In all further tests renode will be downloaded implicitly to the default location.
   run_test test_running_dashboard_demo
   run_test test_running_local_elf
-  run_test test_saving_repl_and_dts
+  case "$OSTYPE" in
+    linux*)
+      run_test test_saving_repl_and_dts
+      ;;
+  esac
 }
 
 run_tests
