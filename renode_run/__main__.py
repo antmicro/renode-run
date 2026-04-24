@@ -102,9 +102,10 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
     script = generate_script(binary, board, generate_repl)
 
-    with tempfile.NamedTemporaryFile() as temp:
+    with tempfile.NamedTemporaryFile(delete=False) as temp:
         temp.write(script.encode("utf-8"))
         temp.flush()
+        temp.close()
         ret = subprocess.run([renode_path, temp.name] + renode_args)
     sys.exit(ret.returncode)
 
