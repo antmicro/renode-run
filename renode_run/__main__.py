@@ -55,7 +55,7 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
-@app.command("download", help="download Renode portable (Linux only!)")
+@app.command("download", help="download Renode portable (Linux and Windows only!)")
 def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,

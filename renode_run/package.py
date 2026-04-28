@@ -15,11 +15,11 @@ if sys.platform.startswith('linux'):
         return LinuxPackage
 
 elif sys.platform.startswith('win'):
-    RENODE_EXECUTABLE = "renode.exe"
-    RENODE_TEST = "renode-test.bat"
+    from renode_run.windows_package import RENODE_EXECUTABLE, RENODE_TEST
+    from renode_run.windows_package import WindowsPackage
 
     def package_type():
-        raise Exception("Package management is not supported on Windows")
+        return WindowsPackage
 
 elif sys.platform.startswith('darwin'):
     # MacOS executable names are compatible with the Linux ones.
