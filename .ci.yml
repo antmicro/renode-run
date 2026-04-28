@@ -1,3 +1,9 @@
+.only_master_and_all_mrs: &only_master_and_all_mrs
+  only:
+    variables:
+    - $CI_COMMIT_REF_NAME == "main"
+    - $CI_PIPELINE_SOURCE == "merge_request"
+
 .common-linux: &common_linux
   tags: ['ace-x86_64']
   variables:
@@ -12,13 +18,16 @@
     - ./tests/test.sh
 
 Debian Bullseye (python3.9):
+  <<: *only_master_and_all_mrs
   <<: *common_linux
   image: debian:bullseye
 
 Debian Bookworm (python3.11):
+  <<: *only_master_and_all_mrs
   <<: *common_linux
   image: debian:bookworm
 
 Ubuntu 25.04 (python3.13):
+  <<: *only_master_and_all_mrs
   <<: *common_linux
   image: ubuntu:25.04
