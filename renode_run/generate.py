@@ -1,4 +1,9 @@
-# Copyright (c) 2025 Antmicro
+#
+# Copyright (c) 2022-2026 Antmicro
+#
+# This file is licensed under the Apache License.
+# Full license text is available in 'LICENSE'.
+#
 
 import os
 import sys
