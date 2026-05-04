@@ -26,3 +26,8 @@ jobs:
           source .venv/bin/activate
           renode-run --help
           renode-run download
+
+      - name: Run renode-run tests
+        run: |
+          source .venv/bin/activate
+          ./tests/test.sh
