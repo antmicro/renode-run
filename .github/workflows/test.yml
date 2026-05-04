@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Clone repository
         uses: actions/checkout@v2
@@ -17,9 +17,12 @@ jobs:
           sudo apt install -y python3 python3-pip
 
       - name: Install renode-run
-        run: python3 -m pip install .
+        run: |
+          python3 -m venv .venv && source .venv/bin/activate
+          python3 -m pip install .
 
       - name: Run renode-run
         run: |
+          source .venv/bin/activate
           renode-run --help
           renode-run download
