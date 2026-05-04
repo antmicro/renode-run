@@ -5,12 +5,21 @@
 # Full license text is available in 'LICENSE'.
 #
 
+import datetime
 import functools
+import re
 import requests
+import sys
+import time
 
+from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
+from urllib import request, error
 
 from renode_run.defaults import DASHBOARD_LINK, DEFAULT_RENODE_ARTIFACTS_DIR
+
+DOWNLOAD_PROGRESS_DELAY = 1
 
 
 class RenodeVariant(str, Enum):
@@ -20,6 +29,109 @@ class RenodeVariant(str, Enum):
     @staticmethod
     def default():
         return RenodeVariant.DOTNET_PORTABLE
+
+
+class PortableArchive(ABC):
+    @abstractmethod
+    def __init__(self, ar_path):
+        pass
+    
+    @abstractmethod
+    def close(self):
+        pass
+
+    @abstractmethod
+    def get_root_dir_name(self):
+        pass
+    
+    @abstractmethod
+    def extract_members(self, final_path):
+        pass
+
+class PortablePackage(ABC):
+    @abstractmethod
+    def __init__(self, renode_variant, version):
+        pass
+
+    @abstractmethod
+    def __enter__(self):
+       pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
+
+    @staticmethod
+    def _report_progress():
+        start_time = previous_time = time.time()
+
+        def aux(count, size, filesize):
+            nonlocal previous_time
+            current_time = time.time()
+
+            if previous_time + DOWNLOAD_PROGRESS_DELAY > current_time and count != 0 and size * count < filesize:
+                return
+
+            previous_time = current_time
+            total = filesize / (1024 * 1024.0)
+            current = count * size * 1.0 / (1024 * 1024.0)
+            current = min(current, total)
+
+            time_elapsed = datetime.timedelta(seconds=current_time - start_time)
+            print(f"Downloaded {current:.2f}MB / {total:.2f}MB (time elapsed: {time_elapsed})...", end='\r')
+        return aux
+
+    @staticmethod
+    @abstractmethod
+    def get_package_name(renode_variant, version):
+        pass
+
+    def download_package(self, renode_variant, version):
+        package_name = self.get_package_name(renode_variant, version)
+
+        try:
+            renode_package, _ = request.urlretrieve(f"https://builds.renode.io/{package_name}", reporthook=self._report_progress())
+        except error.HTTPError:
+            print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
+            sys.exit(1)
+
+        return renode_package
+
+    @staticmethod
+    @abstractmethod
+    def get_artifact_name():
+        pass
+
+    def extract(self, target_dir_path, direct):
+        with self as ar:
+            name = ar.get_root_dir_name()
+
+            # This regex searches for "<semver>+<date>git<commit>".
+            # - semver -- Semantic version (e.g. 0.0.0)
+            # - data -- format YYYYMMDD
+            # - commit -- consists of 8-9 first characters of commit SHA
+            matched = re.search(r"[0-9]+\.[0-9]+\.[0-9]+\+[0-9]{8}git[0-9a-fA-F]{8,9}", name)
+            if not matched:
+                raise Exception(f"Can't find proper renode version string in {name}")
+
+            renode_version = matched.group(0)
+        
+            if direct:
+                # When the --direct argument is passed, we would like to
+                # extract contents of the archive directly to the path given by the user,
+                # and not into a new directory.
+                # Therefore we iterate over all files (paths) in the archive,
+                # and strip them from the first part, which is the renode_<version>
+                # directory.
+                final_path = target_dir_path
+            else:
+                final_path = target_dir_path / f"{self.renove_variant.value}/renode-{renode_version}"
+
+            if Path.exists(final_path / self.get_artifact_name()):
+                return (final_path, False)
+
+            ar.extract_members(final_path)
+            return (final_path, True)
 
 
 def choose_artifacts_path(lower_priority_path, higher_priority_path):

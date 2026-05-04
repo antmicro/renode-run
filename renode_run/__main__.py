@@ -23,6 +23,7 @@ from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode
 from renode_run.utils import RenodeVariant
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
+from renode_run.package import RENODE_TEST
 
 renode_args = []
 
@@ -137,9 +138,9 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
         sys.exit(1)
 
     renode_dir = Path(renode).parent
-    renode_test = renode_dir / 'renode-test'
+    renode_test = renode_dir / RENODE_TEST
     if not Path.exists(renode_test):
-        print(f'Found Renode binary in {renode_dir}, but renode-test is missing; trying test.sh')
+        print(f'Found Renode binary in {renode_dir}, but {RENODE_TEST} is missing; trying test.sh')
         renode_test = renode_dir / 'test.sh'
 
         if not Path.exists(renode_test):
