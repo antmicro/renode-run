@@ -51,7 +51,7 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             print(f'Could not install given requirements: {err}')
             print('Requirements have to be installed manually, or the environment has to be deleted before running command again')
             print(f'Environment path: {context.env_dir}')
-            exit(err.errorcode)
+            exit(err.returncode)
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
