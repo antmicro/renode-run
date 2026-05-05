@@ -5,7 +5,7 @@ on:
     - cron: '0 23 * * *' # run daily at 23:00 (UTC)
 
 jobs:
-  test:
+  test-linux:
     runs-on: ubuntu-22.04
     steps:
       - name: Clone repository
@@ -30,4 +30,28 @@ jobs:
       - name: Run renode-run tests
         run: |
           source .venv/bin/activate
+          ./tests/test.sh
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v6
+
+      - name: Install renode-run
+        run: |
+          python -m venv .venv
+          .venv\Scripts\Activate.ps1
+          python -m pip install .
+
+      - name: Run renode-run
+        run: |
+          .venv\Scripts\Activate.ps1
+          renode-run --help
+          renode-run download
+
+      - name: Run renode-run tests
+        shell: bash
+        run: |
+          source .venv/Scripts/activate
           ./tests/test.sh
