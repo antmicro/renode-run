@@ -321,6 +321,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
 
     env = os.environ
     env['PATH'] = f'{python_dir}:' + (env['PATH'] or '')
+    env["VIRTUAL_ENV"] = str(venv_path)
 
     ret = subprocess.run([renode_test] + renode_args, env=env)
     sys.exit(ret.returncode)
