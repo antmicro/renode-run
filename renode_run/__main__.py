@@ -22,7 +22,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from urllib import request, error, parse
 
-from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
+from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
 from renode_run.utils import RenodeVariant, ConfigFile, PortablePackage
@@ -309,18 +309,18 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
     if venv_path is None:
         venv_path = artifacts_path / RENODE_TEST_VENV_DIRNAME
 
-    python_bin = venv_path / 'bin'
-    python_path = python_bin / 'python'
-    if not Path.exists(python_path):
+    python_executable = get_venv_executable(venv_path)
+    python_dir = python_executable.parent
+    if not Path.exists(python_executable):
         print(f'Bootstraping new virtual env in {venv_path}')
         requirements_path = renode_dir / 'tests' / 'requirements.txt'
         env_builder = EnvBuilderWithRequirements(clear=True, requirements_path=requirements_path)
         env_builder.create(venv_path)
     else:
-        print(f'Found python in {python_bin}')
+        print(f'Found python in {python_dir}')
 
     env = os.environ
-    env['PATH'] = f'{python_bin}:' + (env['PATH'] or '')
+    env['PATH'] = f'{python_dir}:' + (env['PATH'] or '')
 
     ret = subprocess.run([renode_test] + renode_args, env=env)
     sys.exit(ret.returncode)
