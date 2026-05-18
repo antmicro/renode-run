@@ -125,7 +125,7 @@ class PortablePackage(ABC):
                 # directory.
                 final_path = target_dir_path
             else:
-                final_path = target_dir_path / f"{self.renove_variant.value}/renode-{renode_version}"
+                final_path = target_dir_path / f"{self.renode_variant.value}/renode-{renode_version}"
 
             if Path.exists(final_path / self.get_artifact_name()):
                 return (final_path, False)

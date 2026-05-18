@@ -42,7 +42,7 @@ class TarArchive(PortableArchive):
 
 class LinuxPackage(PortablePackage):
     def __init__(self, renode_variant, version):
-        self.renove_variant = renode_variant
+        self.renode_variant = renode_variant
         self.package_path = self.download_package(renode_variant, version)
         self._finalizer = weakref.finalize(self, os.remove, self.package_path)
 
