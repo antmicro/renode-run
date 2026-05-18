@@ -17,6 +17,11 @@ from renode_run.package import package_type, RENODE_EXECUTABLE
 
 
 def download_renode(target_dir_path, config_path, renode_variant, version='latest', direct=False):
+    package_path = package_type().get_package_if_exists(target_dir_path, renode_variant, version, direct)
+    if package_path is not None:
+        print(f"Renode is already present in {package_path}")
+        return
+
     print(f"Downloading Renode ({renode_variant.value})...")
 
     package = package_type()(renode_variant, version)

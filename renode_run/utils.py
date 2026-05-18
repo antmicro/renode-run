@@ -86,6 +86,23 @@ class PortablePackage(ABC):
     def get_package_name(renode_variant, version):
         pass
 
+    @staticmethod
+    def build_package_path(target_dir_path, renode_variant, version, direct):
+        if direct:
+            # When the --direct argument is passed, we would like to
+            # extract contents of the archive directly to the path given by the user.
+            return target_dir_path
+        else:
+            return target_dir_path / f"{renode_variant.value}/renode-{version}"
+
+    @classmethod
+    def get_package_if_exists(cls, target_dir_path, renode_variant, version, direct):
+        package_path = cls.build_package_path(target_dir_path, renode_variant, version, direct)
+        if Path.exists(package_path / cls.get_artifact_name()):
+            return package_path
+        else:
+            return None
+
     def download_package(self, renode_variant, version):
         package_name = self.get_package_name(renode_variant, version)
 
@@ -115,18 +132,8 @@ class PortablePackage(ABC):
                 raise Exception(f"Can't find proper renode version string in {name}")
 
             renode_version = matched.group(0)
-        
-            if direct:
-                # When the --direct argument is passed, we would like to
-                # extract contents of the archive directly to the path given by the user,
-                # and not into a new directory.
-                # Therefore we iterate over all files (paths) in the archive,
-                # and strip them from the first part, which is the renode_<version>
-                # directory.
-                final_path = target_dir_path
-            else:
-                final_path = target_dir_path / f"{self.renode_variant.value}/renode-{renode_version}"
 
+            final_path = self.build_package_path(target_dir_path, self.renode_variant, renode_version, direct)
             if Path.exists(final_path / self.get_artifact_name()):
                 return (final_path, False)
 
