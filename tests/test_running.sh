@@ -67,15 +67,9 @@ test_running=(
   test_default_behaviour
   test_default_behaviour_with_custom_artifacts_path
   test_using_exec_command_explicitly
+  test_running_renode-test
+  test_using_custom_venv_directory
   test_running_dashboard_demo
   test_saving_repl_and_dts
   test_running_local_elf
 )
-
-# renode-run test is supported only on Linux.
-if [[ "$OSTYPE" == "linux"* ]]; then
-  test_running+=(
-    test_running_renode-test
-    test_using_custom_venv_directory
-  )
-fi
