@@ -207,4 +207,6 @@ run_tests()
   esac
 }
 
+trap "delete_test_files; exit 1" EXIT
 run_tests
+trap - EXIT
