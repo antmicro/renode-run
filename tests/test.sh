@@ -101,7 +101,7 @@ test_downloading_to_default_location()
   delete_test_files
 }
 
-test_downloadinng_to_selected_location()
+test_downloading_to_selected_location()
 {
   renode-run download --path $TEST_DOWNLOAD_PATH
   assert_path_exists "$TEST_DOWNLOAD_PATH/dotnet-portable/renode-*"
@@ -189,7 +189,7 @@ run_tests()
   run_test test_default_behaviour_with_custom_artifacts_path
   run_test test_using_exec_command_explicitly
   run_test test_downloading_to_default_location
-  run_test test_downloadinng_to_selected_location
+  run_test test_downloading_to_selected_location
   run_test test_downloading_selected_renode_version
   run_test test_downloading_without_creating_directories_for_versions
   case "$OSTYPE" in
