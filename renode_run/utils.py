@@ -132,11 +132,9 @@ class PortablePackage(ABC):
             renode_version = matched.group(0)
 
             final_path = self.build_package_path(target_dir_path, self.renode_variant, renode_version, direct)
-            if Path.exists(final_path / self.get_artifact_name()):
-                return (final_path, False)
 
             ar.extract_members(final_path)
-            return (final_path, True)
+            return (final_path, renode_version)
 
 
 def choose_artifacts_path(lower_priority_path, higher_priority_path):
@@ -239,12 +237,15 @@ class ConfigFile:
     def update_default(self, variant, path):
         self.config.setdefault(self.DEFAULT_VERSION, {})[variant.value] = str(path)
 
-    def update_download(self, variant, version, path):
+    def update_download(self, variant, version, path, is_latest):
         self.config.setdefault(self.RENODE_INSTALLS, {})[str(path)] = {
             self.RENODE_INSTALL_VERSION: version,
             self.RENODE_INSTALL_VARIANT: variant.value,
         }
         self.update_default(variant, path)
+        if is_latest:
+            self.config[self.LATEST_DATE] = datetime.date.today().isoformat()
+            self.config[self.LATEST_VERSION] = version
 
 
 @functools.lru_cache

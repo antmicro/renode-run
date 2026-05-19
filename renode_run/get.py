@@ -27,6 +27,13 @@ def get_package_if_exists(config, target_dir_path, renode_variant, version, dire
 
 def download_renode(target_dir_path, config_path, renode_variant, version='latest', direct=False):
     config = ConfigFile(config_path)
+
+    if version == 'latest':
+        latest_date, latest_version = config.get_latest_data()
+        if latest_date is not None:
+            print(f"Renode latest version ({latest_version}) was already downloaded today ({latest_date}).\nChecking if present in the target directory...")
+            version = latest_version
+
     package_path = get_package_if_exists(config, target_dir_path, renode_variant, version, direct)
     if package_path is not None:
         print(f"Renode is already present in {package_path}")
@@ -41,15 +48,11 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
 
     os.makedirs(target_dir_path, exist_ok=True)
 
-    (final_path, new_download) = package.extract(target_dir_path, direct)
-    
-    if not new_download:
-        print(f"Renode is already present in {final_path}")
-        return
+    (final_path, renode_version_str) = package.extract(target_dir_path, direct)
 
     print(f"Renode stored in {final_path}")
 
-    config.update_download(renode_variant, version, final_path)
+    config.update_download(renode_variant, renode_version_str, final_path, version == 'latest')
     config.save_config()
 
 
