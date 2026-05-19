@@ -7,7 +7,9 @@
 
 import datetime
 import functools
+import json
 import re
+import os
 import requests
 import sys
 import time
@@ -147,6 +149,75 @@ def choose_artifacts_path(lower_priority_path, higher_priority_path):
     if lower_priority_path is not None:
         return lower_priority_path
     return DEFAULT_RENODE_ARTIFACTS_DIR
+
+
+class ConfigFile:
+    # Different major versions are not compatible.
+    # Minor versions are backwards-compatible.
+    CONFIG_VERSION = "1.0"
+
+    RENODE_RUN_CONFIG_VERSION = 'version'
+    LATEST_DATE = 'latest_date'
+    LATEST_VERSION = 'latest_version'
+    DEFAULT_VERSION = 'default'
+
+    @classmethod
+    def expand_version(cls, version_string):
+        (major, minor) = version_string.split(".")
+        return (int(major), int(minor))
+
+    @classmethod
+    def _update_version(cls, config):
+        config[cls.RENODE_RUN_CONFIG_VERSION] = cls.CONFIG_VERSION
+
+    def __init__(self, config_path):
+        self.config_path = config_path
+        self.config = None
+
+        if config_path.exists():
+            config = json.loads(config_path.read_text())
+            config_version = config.get(self.RENODE_RUN_CONFIG_VERSION, None)
+            if config_version is None:
+                print(f"Renode-run config does not contain version information.")
+                print(f"Please clear the config file located at '{self.config_path}' or revert to an older renode-run version.")
+                exit(1)
+
+            (major, minor) = self.expand_version(self.CONFIG_VERSION)
+            (config_major, config_minor) = self.expand_version(config_version)
+            if config_major != major or config_minor > minor:
+                print(f"Renode-run config version ({config_major}.{minor}) is not compatible with this renode-run ({self.CONFIG_VERSION}).")
+                print(f"Please clear the config file located at '{self.config_path}' or change renode-run version.")
+                exit(1)
+            else:
+                self._update_version(config)
+                self.config = config
+
+        if self.config is None:
+            self.config = {}
+            self._update_version(self.config)
+            self.save_config()
+
+    def save_config(self):
+        if not self.config_path.parent.exists():
+            os.makedirs(self.config_path.parent)
+
+        with open(self.config_path, mode="w") as f:
+            json.dump(self.config, f)
+
+    def get_latest_data(self):
+        latest_date = self.config.get(self.LATEST_DATE)
+        latest_version = self.config.get(self.LATEST_VERSION)
+        if latest_date is not None and latest_version is not None:
+            if datetime.date.fromisoformat(latest_date) == datetime.date.today():
+                return (datetime.date.fromisoformat(latest_date), latest_version)
+
+        return (None, None)
+
+    def get_path_str(self, variant):
+        return self.config.get(variant.value, None)
+
+    def update_download(self, variant, path):
+        self.config[variant.value] = str(path)
 
 
 @functools.lru_cache
