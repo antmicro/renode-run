@@ -106,6 +106,13 @@ test_downloading_to_selected_location()
   renode-run -- $PARAMS -e "q"
 }
 
+test_downloading_to_selected_location_directly()
+{
+  renode-run download --path $TEST_DOWNLOAD_PATH --direct
+  assert_artifact_exists "$TEST_DOWNLOAD_PATH/renode" "renode"
+  renode-run -- $PARAMS -e "q"
+}
+
 test_downloading_selected_renode_version()
 {
   local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
@@ -154,6 +161,18 @@ test_downloading_present_renode_version_in_custom_location()
   renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH"
   assert_artifact_exists "$TEST_DOWNLOAD_PATH/dotnet-portable" "renode-$RENODE_VERSION"
   if ! [ $(renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" 2>&1 | grep -c "Downloading Renode") == 0 ]
+  then
+    echo "Present Renode version should not be downloaded again"
+    exit 1
+  fi
+}
+
+test_downloading_present_renode_version_in_custom_location_directly()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" --direct
+  assert_artifact_exists "$TEST_DOWNLOAD_PATH/renode" "renode"
+  if ! [ $(renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" --direct 2>&1 | grep -c "Downloading Renode") == 0 ]
   then
     echo "Present Renode version should not be downloaded again"
     exit 1
@@ -211,10 +230,12 @@ tests=(
   test_using_exec_command_explicitly
   test_downloading_to_default_location
   test_downloading_to_selected_location
+  test_downloading_to_selected_location_directly
   test_downloading_selected_renode_version
   test_downloading_without_creating_directories_for_versions
   test_downloading_present_renode_version
   test_downloading_present_renode_version_in_custom_location
+  test_downloading_present_renode_version_in_custom_location_directly
   test_downloading_different_renode_version
   test_running_dashboard_demo
   test_running_local_elf
