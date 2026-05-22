@@ -69,7 +69,6 @@ test_default_behaviour()
 {
   renode-run -- $PARAMS -e "q"
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
-  delete_test_files
 }
 
 #Setting custom artifacts path should work the same for all commands,
@@ -78,7 +77,6 @@ test_default_behaviour_with_custom_artifacts_path()
 {
   renode-run -a "$TEST_ARTIFACTS_PATH" -- $PARAMS -e "q"
   assert_artifact_exists "$TEST_ARTIFACTS_PATH/renode-run.download/dotnet-portable" "renode-*"
-  delete_test_files
 }
 
 test_default_behaviour_with_renode_dotnet_portable()
@@ -86,14 +84,12 @@ test_default_behaviour_with_renode_dotnet_portable()
   renode-run download --renode-variant dotnet-portable
   renode-run --renode-variant dotnet-portable -- $PARAMS -e "q"
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
-  delete_test_files
 }
 
 test_using_exec_command_explicitly()
 {
   renode-run exec -- $PARAMS -e "q"
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
-  delete_test_files
 }
 
 test_downloading_to_default_location()
@@ -101,7 +97,6 @@ test_downloading_to_default_location()
   renode-run download
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
   renode-run -- $PARAMS -e "q"
-  delete_test_files
 }
 
 test_downloading_to_selected_location()
@@ -109,7 +104,6 @@ test_downloading_to_selected_location()
   renode-run download --path "$TEST_DOWNLOAD_PATH"
   assert_artifact_exists "$TEST_DOWNLOAD_PATH/dotnet-portable" "renode-*"
   renode-run -- $PARAMS -e "q"
-  delete_test_files
 }
 
 test_downloading_selected_renode_version()
@@ -124,7 +118,6 @@ test_downloading_selected_renode_version()
     echo "Downloaded renode version doesn't match"
     exit 1
   fi
-  delete_test_files
 }
 
 test_downloading_without_creating_directories_for_versions()
@@ -141,7 +134,6 @@ test_downloading_without_creating_directories_for_versions()
       ;;
   esac
   renode-run -- $PARAMS -e "q"
-  delete_test_files
 }
 
 test_running_renode-test()
@@ -149,7 +141,6 @@ test_running_renode-test()
   renode-run download
   renode-run test -- "$DEFAULT_DOTNET_PORTABLE_PATH/renode-"*"/$ROBOT_TEST"
   assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.venv" "pyvenv.cfg"
-  delete_test_files
 }
 
 test_using_custom_venv_directory()
@@ -157,14 +148,12 @@ test_using_custom_venv_directory()
   renode-run download
   renode-run test --venv "$TEST_VENV_PATH" -- "$DEFAULT_DOTNET_PORTABLE_PATH/renode-"*"/$ROBOT_TEST"
   assert_artifact_exists "$TEST_VENV_PATH" "pyvenv.cfg"
-  delete_test_files
 }
 
 test_running_dashboard_demo()
 {
   #This is a simplified test which doesn't verify if Renode actually executes the demo.
   renode-run demo --board "$BOARD" "$SAMPLE" -- $PARAMS -e "q"
-  delete_test_files
 }
 
 test_saving_repl_and_dts()
@@ -172,7 +161,6 @@ test_saving_repl_and_dts()
   renode-run demo -g --board "$BOARD" "$SAMPLE" -- $PARAMS -e "q"
   assert_artifact_exists "$(pwd)" "$BOARD.repl"
   assert_artifact_exists "$(pwd)" "$BOARD.dts"
-  delete_test_files
 }
 
 test_running_local_elf()
@@ -180,30 +168,34 @@ test_running_local_elf()
   curl -o "$ELF_PATH" "$ELF_LINK"
   #This is a simplified test which doesn't verify if Renode actually executes the demo.
   renode-run demo --board "$BOARD" "$ELF_PATH" -- $PARAMS -e "q"
-  delete_test_files
 }
 
-run_tests()
-{
-  run_test test_default_behaviour
-  run_test test_default_behaviour_with_custom_artifacts_path
-  run_test test_using_exec_command_explicitly
-  run_test test_downloading_to_default_location
-  run_test test_downloading_to_selected_location
-  run_test test_downloading_selected_renode_version
-  run_test test_downloading_without_creating_directories_for_versions
-  case "$OSTYPE" in
-    linux*)
-      run_test test_running_renode-test
-      run_test test_using_custom_venv_directory
-      ;;
-  esac
-  #In all further tests renode will be downloaded implicitly to the default location.
-  run_test test_running_dashboard_demo
-  run_test test_running_local_elf
-  run_test test_saving_repl_and_dts
-}
+tests=(
+  test_default_behaviour
+  test_default_behaviour_with_custom_artifacts_path
+  test_using_exec_command_explicitly
+  test_downloading_to_default_location
+  test_downloading_to_selected_location
+  test_downloading_selected_renode_version
+  test_downloading_without_creating_directories_for_versions
+  test_running_dashboard_demo
+  test_running_local_elf
+  test_saving_repl_and_dts
+)
+
+# renode-run test is supported only on Linux.
+if [[ "$OSTYPE" == "linux"* ]]; then
+  tests+=(
+    test_running_renode-test
+    test_using_custom_venv_directory
+  )
+fi
+
 
 trap "delete_test_files; exit 1" EXIT
-run_tests
+for test in "${tests[@]}"
+do
+  run_test "$test"
+  delete_test_files
+done
 trap - EXIT
