@@ -212,6 +212,19 @@ test_downloading_present_renode_latest_in_custom_location_directly()
   fi
 }
 
+test_downloading_different_renode_version_in_custom_location_directly()
+{
+  local RENODE_VERSION1=1.16.1+20260302gita3bdf4a87
+  local RENODE_VERSION2=1.16.1+20260515gitac6335d02
+  renode-run download $RENODE_VERSION1 --path "$TEST_DOWNLOAD_PATH" --direct
+  assert_artifact_exists "$TEST_DOWNLOAD_PATH" "renode"
+  if [ $(renode-run download $RENODE_VERSION2 --path "$TEST_DOWNLOAD_PATH" --direct 2>&1 | grep -c "Downloading Renode") == 0 ]
+  then
+    echo "On version change Renode should be downloaded again"
+    exit 1
+  fi
+}
+
 test_downloading_different_renode_version()
 {
   local RENODE_VERSION1=1.16.1+20260302gita3bdf4a87
@@ -272,6 +285,7 @@ tests=(
   test_downloading_present_renode_latest
   test_downloading_present_renode_latest_in_custom_location
   test_downloading_present_renode_latest_in_custom_location_directly
+  test_downloading_different_renode_version_in_custom_location_directly
   test_downloading_different_renode_version
   test_running_dashboard_demo
   test_running_local_elf
