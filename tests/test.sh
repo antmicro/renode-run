@@ -25,12 +25,13 @@ case "$OSTYPE" in
     ;;
 esac
 
-assert_path_exists()
+assert_artifact_exists()
 {
   path="$1"
+  artifact="$2"
 
-  echo -n "Does $path exist? "
-  if stat $path >/dev/null
+  echo -n "Does $artifact exist in $path? "
+  if find "$path" -name "$artifact" >/dev/null
   then
     echo "Yes"
   else
@@ -66,7 +67,7 @@ run_test()
 test_default_behaviour()
 {
   renode-run -- $PARAMS -e "q"
-  assert_path_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-*"
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
   delete_test_files
 }
 
@@ -75,7 +76,7 @@ test_default_behaviour()
 test_default_behaviour_with_custom_artifacts_path()
 {
   renode-run -a $TEST_ARTIFACTS_PATH -- $PARAMS -e "q"
-  assert_path_exists "$TEST_ARTIFACTS_PATH/renode-run.download/dotnet-portable/renode-*"
+  assert_artifact_exists "$TEST_ARTIFACTS_PATH/renode-run.download/dotnet-portable" "renode-*"
   delete_test_files
 }
 
@@ -83,21 +84,21 @@ test_default_behaviour_with_renode_dotnet_portable()
 {
   renode-run download --renode-variant dotnet-portable
   renode-run --renode-variant dotnet-portable -- $PARAMS -e "q"
-  assert_path_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-*"
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
   delete_test_files
 }
 
 test_using_exec_command_explicitly()
 {
   renode-run exec -- $PARAMS -e "q"
-  assert_path_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-*"
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
   delete_test_files
 }
 
 test_downloading_to_default_location()
 {
   renode-run download
-  assert_path_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-*"
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
   renode-run -- $PARAMS -e "q"
   delete_test_files
 }
@@ -105,7 +106,7 @@ test_downloading_to_default_location()
 test_downloading_to_selected_location()
 {
   renode-run download --path $TEST_DOWNLOAD_PATH
-  assert_path_exists "$TEST_DOWNLOAD_PATH/dotnet-portable/renode-*"
+  assert_artifact_exists "$TEST_DOWNLOAD_PATH/dotnet-portable" "renode-*"
   renode-run -- $PARAMS -e "q"
   delete_test_files
 }
@@ -116,7 +117,7 @@ test_downloading_selected_renode_version()
   local RENODE_VERSION_COMMIT=${RENODE_VERSION: -9:8}
   local RENODE_VERSION_NUMBER=${RENODE_VERSION:0:6}
   renode-run download $RENODE_VERSION
-  assert_path_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION/renode"
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
   if ! [ $(renode-run -- --version | grep -c -e "Renode v$RENODE_VERSION_NUMBER" -e "build: $RENODE_VERSION_COMMIT") == 2 ]
   then
     echo "Downloaded renode version doesn't match"
@@ -130,12 +131,12 @@ test_downloading_without_creating_directories_for_versions()
   renode-run download -d
   case "$OSTYPE" in
     linux*)
-      assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/renode"
-      assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/renode-test"
+      assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download" "renode"
+      assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download" "renode-test"
       ;;
     *)
-      assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/renode.exe"
-      assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download/renode-test.bat"
+      assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download" "renode.exe"
+      assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.download" "renode-test.bat"
       ;;
   esac
   renode-run -- $PARAMS -e "q"
@@ -147,7 +148,7 @@ test_running_renode-test()
   renode-run download
   local ROBOT_TEST_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-*/$ROBOT_TEST"
   renode-run test -- $ROBOT_TEST_PATH
-  assert_path_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.venv/pyvenv.cfg"
+  assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.venv" "pyvenv.cfg"
   delete_test_files
 }
 
@@ -156,7 +157,7 @@ test_using_custom_venv_directory()
   renode-run download
   local ROBOT_TEST_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-*/$ROBOT_TEST"
   renode-run test --venv $TEST_VENV_PATH -- $ROBOT_TEST_PATH
-  assert_path_exists "$TEST_VENV_PATH/pyvenv.cfg"
+  assert_artifact_exists "$TEST_VENV_PATH" "pyvenv.cfg"
   delete_test_files
 }
 
@@ -170,8 +171,8 @@ test_running_dashboard_demo()
 test_saving_repl_and_dts()
 {
   renode-run demo -g --board $BOARD $SAMPLE -- $PARAMS -e "q"
-  assert_path_exists "$(pwd)/$BOARD.repl"
-  assert_path_exists "$(pwd)/$BOARD.dts"
+  assert_artifact_exists "$(pwd)" "$BOARD.repl"
+  assert_artifact_exists "$(pwd)" "$BOARD.dts"
   delete_test_files
 }
 
