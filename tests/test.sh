@@ -15,6 +15,7 @@ ELF_PATH="$(pwd)/bin.elf"
 ELF_LINK=https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_module.elf-gf8d05cf-s_1310072-c00fbffd6b65c6238877c4fe52e8228c2a38bf1f
 
 ROBOT_TEST="tests/example.robot"
+ROBOT_TEST_ARTIFACTS="log.html report.html robot_output.xml"
 
 PARAMS=""
 case "$OSTYPE" in
@@ -46,7 +47,8 @@ delete_test_files()
   rm -rf "$DEFAULT_ARTIFACTS_PATH" \
          "$TEST_PLAYGROUND_PATH" \
          "$(pwd)/$BOARD".* \
-         "$ELF_PATH"
+         "$ELF_PATH" \
+         $ROBOT_TEST_ARTIFACTS
 }
 
 run_test()
