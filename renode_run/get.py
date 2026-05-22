@@ -15,8 +15,19 @@ from renode_run.utils import RenodeVariant, choose_artifacts_path, ConfigFile
 from renode_run.package import package_type, RENODE_EXECUTABLE
 
 
+def get_package_if_exists(config, target_dir_path, renode_variant, version, direct):
+    package_path = package_type().build_package_path(target_dir_path, renode_variant, version, direct)
+    (package_version, package_variant) = config.get_package_info(package_path)
+    correct_version = (package_version == version) and (package_variant == renode_variant.value)
+    if correct_version and package_type().path_contains_renode(package_path):
+        return package_path
+    else:
+        return None
+
+
 def download_renode(target_dir_path, config_path, renode_variant, version='latest', direct=False):
-    package_path = package_type().get_package_if_exists(target_dir_path, renode_variant, version, direct)
+    config = ConfigFile(config_path)
+    package_path = get_package_if_exists(config, target_dir_path, renode_variant, version, direct)
     if package_path is not None:
         print(f"Renode is already present in {package_path}")
         return
@@ -38,8 +49,7 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
 
     print(f"Renode stored in {final_path}")
 
-    config = ConfigFile(config_path)
-    config.update_download(renode_variant, final_path)
+    config.update_download(renode_variant, version, final_path)
     config.save_config()
 
 
@@ -53,18 +63,26 @@ def get_default_renode_path(artifacts_path=None, variant=RenodeVariant.default()
     )
 
 
+def get_installed_renode(config, variant=RenodeVariant.default()):
+    default_version_path_str = config.get_default_path(variant)
+    if default_version_path_str is not None:
+        default_version_path = Path(default_version_path_str)
+        if package_type().path_contains_renode(default_version_path):
+            return Path(default_version_path) / RENODE_EXECUTABLE
+
+    for (path_str, (_, variant_str)) in config.get_renode_installs():
+        path = Path(path_str)
+        if variant_str == variant.value and package_type().path_contains_renode(path):
+            return path / RENODE_EXECUTABLE
+
+
 def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=True, use_system_renode=True):
-    # First, we try <artifacts_dir>, then we look in $PATH
+    config_path = artifacts_dir / RENODE_RUN_CONFIG_FILENAME
+    config = ConfigFile(config_path)
+
     renode_path = None
-    renode_run_config = artifacts_dir / RENODE_RUN_CONFIG_FILENAME
-    config = ConfigFile(renode_run_config)
-    if renode_path := config.get_path_str(variant):
-        renode_path = Path(renode_path) / RENODE_EXECUTABLE
-        if renode_path.exists():
-            print(f"Renode found in {renode_path}")
-            return renode_path
-        else:
-            print(f"Renode-run download listed in {renode_run_config}, but the target directory {renode_path} was not found.")
+    if renode_path := get_installed_renode(config, variant):
+        return renode_path
 
     if use_system_renode:
         print("Looking in $PATH...")
@@ -75,7 +93,7 @@ def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=T
             print('Renode not found. Downloading...')
             download_renode(
                 target_dir_path=artifacts_dir / RENODE_TARGET_DIRNAME,
-                config_path=artifacts_dir / RENODE_RUN_CONFIG_FILENAME,
+                config_path=config_path,
                 renode_variant=variant,
             )
             return get_renode(

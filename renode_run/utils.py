@@ -98,12 +98,8 @@ class PortablePackage(ABC):
             return target_dir_path / f"{renode_variant.value}/renode-{version}"
 
     @classmethod
-    def get_package_if_exists(cls, target_dir_path, renode_variant, version, direct):
-        package_path = cls.build_package_path(target_dir_path, renode_variant, version, direct)
-        if Path.exists(package_path / cls.get_artifact_name()):
-            return package_path
-        else:
-            return None
+    def path_contains_renode(cls, path):
+        return Path.exists(path / cls.get_artifact_name())
 
     def download_package(self, renode_variant, version):
         package_name = self.get_package_name(renode_variant, version)
@@ -154,9 +150,12 @@ def choose_artifacts_path(lower_priority_path, higher_priority_path):
 class ConfigFile:
     # Different major versions are not compatible.
     # Minor versions are backwards-compatible.
-    CONFIG_VERSION = "1.0"
+    CONFIG_VERSION = "2.0"
 
     RENODE_RUN_CONFIG_VERSION = 'version'
+    RENODE_INSTALLS = 'installations'
+    RENODE_INSTALL_VERSION = 'version'
+    RENODE_INSTALL_VARIANT = 'variant'
     LATEST_DATE = 'latest_date'
     LATEST_VERSION = 'latest_version'
     DEFAULT_VERSION = 'default'
@@ -213,11 +212,39 @@ class ConfigFile:
 
         return (None, None)
 
-    def get_path_str(self, variant):
-        return self.config.get(variant.value, None)
+    @classmethod
+    def extract_info_from_package_data(cls, package_data):
+        if package_data is not None:
+            version = package_data.get(cls.RENODE_INSTALL_VERSION, None)
+            variant = package_data.get(cls.RENODE_INSTALL_VARIANT, None)
+            return (version, variant)
+        else:
+            return (None, None)
 
-    def update_download(self, variant, path):
-        self.config[variant.value] = str(path)
+    def get_renode_installs(self):
+        def expand_install_entry(package):
+            (path_str, package_data) = package
+            return (path_str, self.extract_info_from_package_data(package_data))
+
+        return map(expand_install_entry, self.config.get(self.RENODE_INSTALLS, {}).items())
+
+    def get_default_path(self, variant):
+        default_version_dict = self.config.get(self.DEFAULT_VERSION, {})
+        return default_version_dict.get(variant.value, None)
+
+    def get_package_info(self, path):
+        package_dict = self.config.get(self.RENODE_INSTALLS, {}).get(str(path), None)
+        return self.extract_info_from_package_data(package_dict)
+    
+    def update_default(self, variant, path):
+        self.config.setdefault(self.DEFAULT_VERSION, {})[variant.value] = str(path)
+
+    def update_download(self, variant, version, path):
+        self.config.setdefault(self.RENODE_INSTALLS, {})[str(path)] = {
+            self.RENODE_INSTALL_VERSION: version,
+            self.RENODE_INSTALL_VARIANT: variant.value,
+        }
+        self.update_default(variant, path)
 
 
 @functools.lru_cache
