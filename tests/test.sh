@@ -201,11 +201,7 @@ run_tests()
   #In all further tests renode will be downloaded implicitly to the default location.
   run_test test_running_dashboard_demo
   run_test test_running_local_elf
-  case "$OSTYPE" in
-    linux*)
-      run_test test_saving_repl_and_dts
-      ;;
-  esac
+  run_test test_saving_repl_and_dts
 }
 
 trap "delete_test_files; exit 1" EXIT
