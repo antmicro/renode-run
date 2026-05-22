@@ -8,7 +8,7 @@
 import os
 
 from pathlib import Path
-from shutil import which
+from shutil import which, rmtree
 
 from renode_run.defaults import GLOBAL_ARTIFACTS_PATH, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
 from renode_run.utils import RenodeVariant, choose_artifacts_path, ConfigFile
@@ -25,21 +25,31 @@ def get_package_if_exists(config, target_dir_path, renode_variant, version, dire
         return None
 
 
-def download_renode(target_dir_path, config_path, renode_variant, version='latest', direct=False):
+def download_renode(target_dir_path, config_path, renode_variant, version='latest', direct=False, force=False):
     config = ConfigFile(config_path)
 
-    if version == 'latest':
-        latest_date, latest_version = config.get_latest_data()
-        if latest_date is not None:
-            print(f"Renode latest version ({latest_version}) was already downloaded today ({latest_date}).\nChecking if present in the target directory...")
-            version = latest_version
+    if force:
+        if version == 'latest':
+            _, latest_version = config.get_latest_data()
+            if latest_version is not None:
+                package_dir = package_type().build_package_path(target_dir_path, renode_variant, latest_version, direct)
+                rmtree(package_dir)
+        else:
+            package_dir = package_type().build_package_path(target_dir_path, renode_variant, version, direct)
+            rmtree(package_dir)
+    else:
+        if version == 'latest':
+            latest_date, latest_version = config.get_latest_data()
+            if latest_date is not None:
+                print(f"Renode latest version ({latest_version}) was already downloaded today ({latest_date}).\nChecking if present in the target directory...")
+                version = latest_version
 
-    package_path = get_package_if_exists(config, target_dir_path, renode_variant, version, direct)
-    if package_path is not None:
-        print(f"Renode is already present in {package_path}")
-        config.update_default(renode_variant, package_path)
-        config.save_config()
-        return
+        package_path = get_package_if_exists(config, target_dir_path, renode_variant, version, direct)
+        if package_path is not None:
+            print(f"Renode is already present in {package_path}")
+            config.update_default(renode_variant, package_path)
+            config.save_config()
+            return
 
     print(f"Downloading Renode ({renode_variant.value})...")
 

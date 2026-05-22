@@ -59,6 +59,7 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
 def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
+                     force: Annotated[bool, typer.Option("-f", "--force/ ", help='download renode even if it is already present')] = False,
                      renode_variant: RenodeVariant = RenodeVariant.default(),
                      version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
     # Option passed after the command has higher priority.
@@ -71,6 +72,7 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
         renode_variant=renode_variant,
         version=version,
         direct=direct,
+        force=force,
     )
 
 
