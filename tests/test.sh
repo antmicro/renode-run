@@ -2,15 +2,15 @@
 
 set -eu
 
-DEFAULT_ARTIFACTS_PATH=$HOME/.config/renode
+DEFAULT_ARTIFACTS_PATH="$HOME/.config/renode"
 DEFAULT_DOTNET_PORTABLE_PATH="$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable"
-TEST_ARTIFACTS_PATH=$(pwd)/test_artifacts
-TEST_DOWNLOAD_PATH=$(pwd)/test_download
-TEST_VENV_PATH=$(pwd)/test_venv
+TEST_ARTIFACTS_PATH="$(pwd)/test_artifacts"
+TEST_DOWNLOAD_PATH="$(pwd)/test_download"
+TEST_VENV_PATH="$(pwd)/test_venv"
 
 BOARD=nrf52840dk_nrf52840
 SAMPLE=hello_world
-ELF_PATH=$(pwd)/bin.elf
+ELF_PATH="$(pwd)/bin.elf"
 ELF_LINK=https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_module.elf-gf8d05cf-s_1310072-c00fbffd6b65c6238877c4fe52e8228c2a38bf1f
 
 ROBOT_TEST="tests/example.robot"
@@ -42,12 +42,12 @@ assert_artifact_exists()
 
 delete_test_files()
 {
-  rm -rf $DEFAULT_ARTIFACTS_PATH \
-         $TEST_ARTIFACTS_PATH \
-         $TEST_DOWNLOAD_PATH \
-         $TEST_VENV_PATH \
-         $(pwd)/$BOARD.* \
-         $ELF_PATH
+  rm -rf "$DEFAULT_ARTIFACTS_PATH" \
+         "$TEST_ARTIFACTS_PATH" \
+         "$TEST_DOWNLOAD_PATH" \
+         "$TEST_VENV_PATH" \
+         "$(pwd)/$BOARD".* \
+         "$ELF_PATH"
 }
 
 run_test()
@@ -75,7 +75,7 @@ test_default_behaviour()
 #so there is no need to test this option for all of them.
 test_default_behaviour_with_custom_artifacts_path()
 {
-  renode-run -a $TEST_ARTIFACTS_PATH -- $PARAMS -e "q"
+  renode-run -a "$TEST_ARTIFACTS_PATH" -- $PARAMS -e "q"
   assert_artifact_exists "$TEST_ARTIFACTS_PATH/renode-run.download/dotnet-portable" "renode-*"
   delete_test_files
 }
@@ -105,7 +105,7 @@ test_downloading_to_default_location()
 
 test_downloading_to_selected_location()
 {
-  renode-run download --path $TEST_DOWNLOAD_PATH
+  renode-run download --path "$TEST_DOWNLOAD_PATH"
   assert_artifact_exists "$TEST_DOWNLOAD_PATH/dotnet-portable" "renode-*"
   renode-run -- $PARAMS -e "q"
   delete_test_files
@@ -146,8 +146,7 @@ test_downloading_without_creating_directories_for_versions()
 test_running_renode-test()
 {
   renode-run download
-  local ROBOT_TEST_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-*/$ROBOT_TEST"
-  renode-run test -- $ROBOT_TEST_PATH
+  renode-run test -- "$DEFAULT_DOTNET_PORTABLE_PATH/renode-"*"/$ROBOT_TEST"
   assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.venv" "pyvenv.cfg"
   delete_test_files
 }
@@ -155,8 +154,7 @@ test_running_renode-test()
 test_using_custom_venv_directory()
 {
   renode-run download
-  local ROBOT_TEST_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-*/$ROBOT_TEST"
-  renode-run test --venv $TEST_VENV_PATH -- $ROBOT_TEST_PATH
+  renode-run test --venv "$TEST_VENV_PATH" -- "$DEFAULT_DOTNET_PORTABLE_PATH/renode-"*"/$ROBOT_TEST"
   assert_artifact_exists "$TEST_VENV_PATH" "pyvenv.cfg"
   delete_test_files
 }
@@ -164,13 +162,13 @@ test_using_custom_venv_directory()
 test_running_dashboard_demo()
 {
   #This is a simplified test which doesn't verify if Renode actually executes the demo.
-  renode-run demo --board $BOARD $SAMPLE -- $PARAMS -e "q"
+  renode-run demo --board "$BOARD" "$SAMPLE" -- $PARAMS -e "q"
   delete_test_files
 }
 
 test_saving_repl_and_dts()
 {
-  renode-run demo -g --board $BOARD $SAMPLE -- $PARAMS -e "q"
+  renode-run demo -g --board "$BOARD" "$SAMPLE" -- $PARAMS -e "q"
   assert_artifact_exists "$(pwd)" "$BOARD.repl"
   assert_artifact_exists "$(pwd)" "$BOARD.dts"
   delete_test_files
@@ -178,9 +176,9 @@ test_saving_repl_and_dts()
 
 test_running_local_elf()
 {
-  curl -o $ELF_PATH $ELF_LINK
+  curl -o "$ELF_PATH" "$ELF_LINK"
   #This is a simplified test which doesn't verify if Renode actually executes the demo.
-  renode-run demo --board $BOARD $ELF_PATH -- $PARAMS -e "q"
+  renode-run demo --board "$BOARD" "$ELF_PATH" -- $PARAMS -e "q"
   delete_test_files
 }
 
