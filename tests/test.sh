@@ -105,8 +105,7 @@ test_downloading_to_selected_location()
 {
   renode-run download --path $TEST_DOWNLOAD_PATH
   assert_path_exists "$TEST_DOWNLOAD_PATH/dotnet-portable/renode-*"
-  #Renode installation is one directory above $TEST_DOWNLOAD_PATH so it has to be passed as artifacts path.
-  renode-run -a $TEST_DOWNLOAD_PATH/.. -- $PARAMS -e "q"
+  renode-run -- $PARAMS -e "q"
   delete_test_files
 }
 
