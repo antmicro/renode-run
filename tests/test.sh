@@ -4,9 +4,10 @@ set -eu
 
 DEFAULT_ARTIFACTS_PATH="$HOME/.config/renode"
 DEFAULT_DOTNET_PORTABLE_PATH="$DEFAULT_ARTIFACTS_PATH/renode-run.download/dotnet-portable"
-TEST_ARTIFACTS_PATH="$(pwd)/test_artifacts"
-TEST_DOWNLOAD_PATH="$(pwd)/test_download"
-TEST_VENV_PATH="$(pwd)/test_venv"
+TEST_PLAYGROUND_PATH="$(pwd)/test_playground"
+TEST_ARTIFACTS_PATH="$TEST_PLAYGROUND_PATH/test_artifacts"
+TEST_DOWNLOAD_PATH="$TEST_PLAYGROUND_PATH/test_download"
+TEST_VENV_PATH="$TEST_PLAYGROUND_PATH/test_venv"
 
 BOARD=nrf52840dk_nrf52840
 SAMPLE=hello_world
@@ -43,9 +44,7 @@ assert_artifact_exists()
 delete_test_files()
 {
   rm -rf "$DEFAULT_ARTIFACTS_PATH" \
-         "$TEST_ARTIFACTS_PATH" \
-         "$TEST_DOWNLOAD_PATH" \
-         "$TEST_VENV_PATH" \
+         "$TEST_PLAYGROUND_PATH" \
          "$(pwd)/$BOARD".* \
          "$ELF_PATH"
 }
