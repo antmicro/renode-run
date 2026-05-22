@@ -71,7 +71,7 @@ def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=T
             renode_path = Path(renode_path) / RENODE_EXECUTABLE
             if renode_path.exists():
                 print(f"Renode found in {renode_path}")
-                return str(renode_path)  # returning str to match the result of `which`
+                return renode_path
             else:
                 print(f"Renode-run download listed in {renode_run_config}, but the target directory {renode_path} was not found.")
 
@@ -97,6 +97,7 @@ def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=T
             print("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
 
     else:
+        renode_path = Path(renode_path)
         print(f"Renode found in $PATH: {renode_path}. If you want to use the latest Renode version, consider running 'renode-run download'")
 
     return renode_path

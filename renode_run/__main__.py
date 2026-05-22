@@ -107,7 +107,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
         temp.write(script.encode("utf-8"))
         temp.flush()
         temp.close()
-        ret = subprocess.run([renode_path, temp.name] + renode_args)
+        ret = subprocess.run([str(renode_path), temp.name] + renode_args)
     sys.exit(ret.returncode)
 
 
@@ -122,7 +122,7 @@ def exec_command(artifacts_path: artifacts_path_annotation = None,
         sys.exit(1)
 
     sys.stdout.flush()
-    ret = subprocess.run([renode] + renode_args)
+    ret = subprocess.run([str(renode)] + renode_args)
     sys.exit(ret.returncode)
 
 
@@ -133,11 +133,11 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
                  renode_variant: RenodeVariant = RenodeVariant.default()):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
-    renode = get_renode(artifacts_path, renode_variant)
-    if renode is None:
+    renode_path = get_renode(artifacts_path, renode_variant)
+    if renode_path is None:
         sys.exit(1)
 
-    renode_dir = Path(renode).parent
+    renode_dir = renode_path.parent
     renode_test = renode_dir / RENODE_TEST
     if not Path.exists(renode_test):
         print(f'Found Renode binary in {renode_dir}, but {RENODE_TEST} is missing; trying test.sh')
