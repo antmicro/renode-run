@@ -179,6 +179,18 @@ test_downloading_present_renode_version_in_custom_location_directly()
   fi
 }
 
+test_downloading_present_renode_version_overriden_by_force()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  if [ $(renode-run download $RENODE_VERSION --force 2>&1 | grep -c "Downloading Renode") == 0 ]
+  then
+    echo "With --force option Renode should be downloaded even when present"
+    exit 1
+  fi
+}
+
 test_downloading_present_renode_latest()
 {
   renode-run download
@@ -212,6 +224,17 @@ test_downloading_present_renode_latest_in_custom_location_directly()
   fi
 }
 
+test_downloading_present_renode_latest_overriden_by_force()
+{
+  renode-run download
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
+  if [ $(renode-run download --force 2>&1 | grep -c "Downloading Renode") == 0 ]
+  then
+    echo "With --force option Renode should be downloaded even when present"
+    exit 1
+  fi
+}
+
 test_downloading_different_renode_version_in_custom_location_directly()
 {
   local RENODE_VERSION1=1.16.1+20260302gita3bdf4a87
@@ -234,6 +257,19 @@ test_downloading_different_renode_version()
   # Presence of one version should not prevent downloading another.
   renode-run download $RENODE_VERSION2
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-$RENODE_VERSION2"
+}
+
+test_behavior_on_external_install_delete()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  rm -rf "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
+  if [ $(renode-run download $RENODE_VERSION | grep -c "Downloading Renode") == 0 ]
+  then
+    echo "Missing install should be downloaded again"
+    exit 1
+  fi
 }
 
 test_reinstall_updates_default_version()
@@ -300,11 +336,14 @@ tests=(
   test_downloading_present_renode_version
   test_downloading_present_renode_version_in_custom_location
   test_downloading_present_renode_version_in_custom_location_directly
+  test_downloading_present_renode_version_overriden_by_force
   test_downloading_present_renode_latest
   test_downloading_present_renode_latest_in_custom_location
   test_downloading_present_renode_latest_in_custom_location_directly
+  test_downloading_present_renode_latest_overriden_by_force
   test_downloading_different_renode_version_in_custom_location_directly
   test_downloading_different_renode_version
+  test_behavior_on_external_install_delete
   test_reinstall_updates_default_version
   test_running_dashboard_demo
   test_running_local_elf
