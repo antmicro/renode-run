@@ -236,6 +236,24 @@ test_downloading_different_renode_version()
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-$RENODE_VERSION2"
 }
 
+test_reinstall_updates_default_version()
+{
+  local RENODE_VERSION1=1.16.1+20260302gita3bdf4a87
+  local RENODE_VERSION1_COMMIT=${RENODE_VERSION1: -9:8}
+  local RENODE_VERSION2=1.16.1+20260515gitac6335d02
+  renode-run download $RENODE_VERSION1
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION1" "renode"
+  renode-run download $RENODE_VERSION2
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION2" "renode"
+  renode-run download $RENODE_VERSION1
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION1" "renode"
+  if ! [ $(renode-run -- --version | grep -c -e "build: $RENODE_VERSION1_COMMIT") == 1 ]
+  then
+    echo "Reinstalling should update the default version to the reinstalled one"
+    exit 1
+  fi
+}
+
 test_running_renode-test()
 {
   renode-run download
@@ -287,6 +305,7 @@ tests=(
   test_downloading_present_renode_latest_in_custom_location_directly
   test_downloading_different_renode_version_in_custom_location_directly
   test_downloading_different_renode_version
+  test_reinstall_updates_default_version
   test_running_dashboard_demo
   test_running_local_elf
   test_saving_repl_and_dts
