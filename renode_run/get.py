@@ -37,6 +37,8 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
     package_path = get_package_if_exists(config, target_dir_path, renode_variant, version, direct)
     if package_path is not None:
         print(f"Renode is already present in {package_path}")
+        config.update_default(renode_variant, package_path)
+        config.save_config()
         return
 
     print(f"Downloading Renode ({renode_variant.value})...")
