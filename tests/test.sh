@@ -290,6 +290,41 @@ test_reinstall_updates_default_version()
   fi
 }
 
+test_list_command_output()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download
+  renode-run download $RENODE_VERSION
+  if ! [ $(renode-run list 2>&1 | grep "renode-$RENODE_VERSION" | grep -c "default") == 1 ]
+  then
+    echo "Last downloaded Renode should be listed and marked as default"
+    exit 1
+  fi
+  if ! [ $(renode-run list 2>&1 | grep -v -e "renode-$RENODE_VERSION" | grep -c "latest") == 1 ]
+  then
+    echo "Latest Renode should be marked as 'latest'"
+    exit 1
+  fi
+}
+
+test_filter_clears_non_existent_installations()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" --direct
+  if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 1 ]
+  then
+    echo "List command should list directly downloaded Renode"
+    exit 1
+  fi
+  
+  rm -rf $TEST_DOWNLOAD_PATH
+  if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 0 ]
+  then
+    echo "List command should not show deleted Renode installs"
+    exit 1
+  fi
+}
+
 test_running_renode-test()
 {
   renode-run download
@@ -345,6 +380,8 @@ tests=(
   test_downloading_different_renode_version
   test_behavior_on_external_install_delete
   test_reinstall_updates_default_version
+  test_list_command_output
+  test_filter_clears_non_existent_installations
   test_running_dashboard_demo
   test_running_local_elf
   test_saving_repl_and_dts
