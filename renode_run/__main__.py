@@ -19,10 +19,11 @@ from pathlib import Path
 from typing_extensions import Annotated
 from rich.table import Table
 from rich.console import Console
+from rich.prompt import Prompt
 
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
 from renode_run.generate import generate_script
-from renode_run.get import download_renode, get_renode
+from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
 from renode_run.utils import RenodeVariant, ConfigFile
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST, package_type
@@ -76,6 +77,54 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
         direct=direct,
         force=force,
     )
+
+@app.command("remove", help="remove Renode installation")
+def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to remove (indicated by version or path)')],
+                   remove_all: Annotated[bool, typer.Option("--remove-all", help='remove all installations of the given version without a prompt', is_flag=True)] = False,
+                   artifacts_path: artifacts_path_annotation = None):
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
+    config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
+
+    config_file = ConfigFile(config_file_path, package_type())
+
+    (packages_to_remove, unambiguos_match) = get_matching_installed_renode_instances(config_file, None, renode_instance)
+
+    if not packages_to_remove:
+        print(f"No package with version '{renode_instance}' installed, exiting")
+        return
+
+    if unambiguos_match or remove_all:
+        for package_path in packages_to_remove:
+            config_file.remove_installation(package_type(), package_path)
+
+        config_file.save_config()
+        return
+
+    REMOVE_NOTHING_OPTION = "N"
+    REMOVE_ALL_OPTION = "a"
+
+    print("Found multiple instances of given version:")
+    package_id = 1
+    choices = [REMOVE_NOTHING_OPTION, REMOVE_ALL_OPTION]
+    for package_path in packages_to_remove:
+        print(f"{package_id}. {str(package_path)}")
+        choices.append(str(package_id))
+        package_id += 1
+    
+    print()
+    response = Prompt.ask(f"Enter number of the instance to remove: ({REMOVE_NOTHING_OPTION}=neither, {REMOVE_ALL_OPTION}=remove all)\n", choices=choices, default=REMOVE_NOTHING_OPTION, case_sensitive=False)
+
+    if response == REMOVE_NOTHING_OPTION:
+        return
+    elif response == REMOVE_ALL_OPTION:
+        for package_path in packages_to_remove:
+            config_file.remove_installation(package_type(), package_path)
+    else:
+        package_id = int(response)
+        path_to_remove = packages_to_remove[package_id - 1]
+        config_file.remove_installation(package_type(), path_to_remove)
+
+    config_file.save_config()
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.

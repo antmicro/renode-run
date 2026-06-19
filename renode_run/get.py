@@ -91,6 +91,25 @@ def get_installed_renode(config, variant=RenodeVariant.default()):
             return path / RENODE_EXECUTABLE
 
 
+def get_matching_installed_renode_instances(config_file, renode_variant, renode_instance):
+    matched_exact = True
+    instances = []
+    instance_path = Path(renode_instance)
+    instance_version = renode_instance
+    for (package_path_str, (package_version, package_variant)) in config_file.get_renode_installs():
+        if renode_variant is not None and renode_variant != package_variant:
+            continue
+
+        package_path = Path(package_path_str)
+        exact_match = instance_path == package_path or instance_version == package_version
+        if instance_version in package_version or exact_match:
+            instances.append(package_path)
+            matched_exact &= exact_match
+
+    unambiguos_match = matched_exact and len(instances) == 1
+    return (instances, unambiguos_match)
+
+
 def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=True, use_system_renode=True):
     config_path = artifacts_dir / RENODE_RUN_CONFIG_FILENAME
     config = ConfigFile(config_path)

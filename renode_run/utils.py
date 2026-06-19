@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from urllib import request, error
+from shutil import rmtree
 
 from renode_run.defaults import DASHBOARD_LINK, DEFAULT_RENODE_ARTIFACTS_DIR
 
@@ -215,7 +216,7 @@ class ConfigFile:
             (_, package_variant) = self.get_package_info(Path(path_str))
             return variant == package_variant
 
-        defaults = self.config.get(self.DEFAULT_VERSION, {})
+        defaults = self.config.get(self.DEFAULT_VERSION, {}).items()
         self.config[self.DEFAULT_VERSION] = dict(filter(default_present, defaults))
 
     def _filter_existing(self, portable_package):
@@ -278,6 +279,15 @@ class ConfigFile:
         if is_latest:
             self.config[self.LATEST_DATE] = datetime.date.today().isoformat()
             self.config[self.LATEST_VERSION] = version
+
+    def remove_installation(self, portable_package, path):
+        if not portable_package.path_contains_renode(path):
+            return
+        
+        rmtree(path)
+        self.config.get(self.RENODE_INSTALLS, {}).pop(str(path))
+        self._filter_defaults()
+        print(f"Removed package from: {path}")
 
 
 @functools.lru_cache
