@@ -26,7 +26,7 @@ def get_package_if_exists(config, target_dir_path, renode_variant, version, dire
 
 
 def download_renode(target_dir_path, config_path, renode_variant, version='latest', direct=False, force=False):
-    config = ConfigFile(config_path)
+    config = ConfigFile(config_path, package_type())
 
     if force:
         if version == 'latest':

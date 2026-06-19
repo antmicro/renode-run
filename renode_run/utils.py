@@ -167,7 +167,7 @@ class ConfigFile:
     def _update_version(cls, config):
         config[cls.RENODE_RUN_CONFIG_VERSION] = cls.CONFIG_VERSION
 
-    def __init__(self, config_path):
+    def __init__(self, config_path, portable_package=None):
         self.config_path = config_path
         self.config = None
 
@@ -189,9 +189,17 @@ class ConfigFile:
                 self._update_version(config)
                 self.config = config
 
+        should_save = False
+
         if self.config is None:
             self.config = {}
             self._update_version(self.config)
+            should_save = True
+            
+        if portable_package:
+            should_save |= self._filter_existing(portable_package)
+
+        if should_save:
             self.save_config()
 
     def save_config(self):
@@ -200,6 +208,30 @@ class ConfigFile:
 
         with open(self.config_path, mode="w") as f:
             json.dump(self.config, f)
+
+    def _filter_defaults(self):
+        def default_present(default_entry):
+            (variant, path_str) = default_entry
+            (_, package_variant) = self.get_package_info(Path(path_str))
+            return variant == package_variant
+
+        defaults = self.config.get(self.DEFAULT_VERSION, {})
+        self.config[self.DEFAULT_VERSION] = dict(filter(default_present, defaults))
+
+    def _filter_existing(self, portable_package):
+        def check_package(package):
+            (path_str, _) = package
+            return portable_package.path_contains_renode(Path(path_str))
+
+        package_list = self.config.get(self.RENODE_INSTALLS, {}).items()
+        existing_packages = dict(filter(check_package, package_list))
+
+        config_updated = len(package_list) != len(existing_packages)
+        if config_updated:
+            self.config[self.RENODE_INSTALLS] = existing_packages
+            self._filter_defaults()
+
+        return config_updated
 
     def get_latest_data(self):
         latest_date = self.config.get(self.LATEST_DATE)

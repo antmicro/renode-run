@@ -25,7 +25,7 @@ from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode
 from renode_run.utils import RenodeVariant, ConfigFile
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
-from renode_run.package import RENODE_TEST
+from renode_run.package import RENODE_TEST, package_type
 
 renode_args = []
 
@@ -178,7 +178,7 @@ def list_command(artifacts_path: artifacts_path_annotation = None):
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
 
-    config_file = ConfigFile(config_file_path)
+    config_file = ConfigFile(config_file_path, package_type())
 
     default_dotnet_package_path = config_file.get_default_path(RenodeVariant.DOTNET_PORTABLE)
     default_mono_package_path = config_file.get_default_path(RenodeVariant.MONO_PORTABLE)
