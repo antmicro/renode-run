@@ -325,6 +325,64 @@ test_filter_clears_non_existent_installations()
   fi
 }
 
+test_remove_command()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+
+  renode-run remove $RENODE_VERSION
+  if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 0 ]
+  then
+    echo "Remove command should remove Renode installation"
+    exit 1
+  fi
+}
+
+test_remove_by_path()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+
+  renode-run remove "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
+    if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 0 ]
+  then
+    echo "Remove command should remove Renode installation"
+    exit 1
+  fi
+}
+
+test_remove_all_command()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION
+  renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" --direct
+  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$TEST_DOWNLOAD_PATH" "renode"
+
+  renode-run remove $RENODE_VERSION --remove-all
+  if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 0 ]
+  then
+    echo "Remove with '--remove-all' option should remove all Renode installation with a given version"
+    exit 1
+  fi
+}
+
+test_remove_does_not_affect_other_versions()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download
+  renode-run download $RENODE_VERSION
+
+  renode-run remove $RENODE_VERSION
+  if ! [ $(renode-run list 2>&1 | grep -c "latest") == 1 ]
+  then
+    echo "Remove command should not affect other installed versions"
+    exit 1
+  fi
+}
+
 test_running_renode-test()
 {
   renode-run download
@@ -382,6 +440,10 @@ tests=(
   test_reinstall_updates_default_version
   test_list_command_output
   test_filter_clears_non_existent_installations
+  test_remove_command
+  test_remove_by_path
+  test_remove_all_command
+  test_remove_does_not_affect_other_versions
   test_running_dashboard_demo
   test_running_local_elf
   test_saving_repl_and_dts
