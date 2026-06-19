@@ -15,6 +15,7 @@ dependencies = [
     "dts2repl @ git+https://github.com/antmicro/dts2repl@main#egg=dts2repl",
     "requests==2.*",
     "typer==0.15.*",
+    "rich==14.1.*",
 ]
 
 classifiers = [

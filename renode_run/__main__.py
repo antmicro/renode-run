@@ -17,11 +17,13 @@ import venv
 
 from pathlib import Path
 from typing_extensions import Annotated
+from rich.table import Table
+from rich.console import Console
 
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode
-from renode_run.utils import RenodeVariant
+from renode_run.utils import RenodeVariant, ConfigFile
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST
 
@@ -169,6 +171,44 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
 
     ret = subprocess.run([renode_test] + renode_args, env=env)
     sys.exit(ret.returncode)
+
+
+@app.command("list", help="list Renode installations")
+def list_command(artifacts_path: artifacts_path_annotation = None):
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
+    config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
+
+    config_file = ConfigFile(config_file_path)
+
+    default_dotnet_package_path = config_file.get_default_path(RenodeVariant.DOTNET_PORTABLE)
+    default_mono_package_path = config_file.get_default_path(RenodeVariant.MONO_PORTABLE)
+
+    (_, latest_version) = config_file.get_latest_data()
+
+    release_table = Table(box=None, show_edge=False)
+    release_table.add_column("Package Path")
+    release_table.add_column("Version")
+    release_table.add_column("Renode Variant")
+    release_table.add_column("Tags")
+
+    for (package_path_str, (version, variant)) in config_file.get_renode_installs():
+        tags = []
+
+        if package_path_str == default_dotnet_package_path:
+            tags.append("default")
+        elif package_path_str == default_mono_package_path:
+            tags.append("default-mono")
+
+        if version == latest_version:
+            tags.append("latest")
+
+        release_table.add_row(package_path_str, version, variant, " ".join(tags) if tags else "-")
+
+    # If rich Console fails to deduce console width it defaults to 80,
+    # which does not allow for full package-paths to be printed
+    terminal_width = None if sys.stdout.isatty() else 10000
+    console = Console(width=terminal_width)
+    console.print(release_table)
 
 
 # Calling renode-run without arguments runs renode from default path
