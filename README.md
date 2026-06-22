@@ -39,3 +39,11 @@ renode-run demo --board 96b_nitrogen shell_module
 # You can also provide a name of your local ELF file with a similar syntax:
 renode-run demo --board 96b_nitrogen my-software.elf
 ```
+
+Manage installed Renode versions:
+
+```sh
+renode-run list
+
+renode-run remove 1.16.1+20260620gitdc52b24c1
+```
