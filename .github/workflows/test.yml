@@ -26,6 +26,7 @@ jobs:
           source .venv/bin/activate
           renode-run --help
           renode-run download
+          renode-run list
 
       - name: Run renode-run tests
         run: |
@@ -49,6 +50,7 @@ jobs:
           .venv\Scripts\Activate.ps1
           renode-run --help
           renode-run download
+          renode-run list
 
       - name: Run renode-run tests
         shell: bash
