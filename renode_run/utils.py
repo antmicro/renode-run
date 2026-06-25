@@ -118,19 +118,24 @@ class PortablePackage(ABC):
     def get_artifact_name():
         pass
 
-    def extract(self, target_dir_path, direct):
+    class UnableToFindVersion(Exception):
+        pass
+
+    def extract(self, target_dir_path, direct, version_override=None):
         with self as ar:
             name = ar.get_root_dir_name()
+            renode_version = version_override
 
-            # This regex searches for "<semver>+<date>git<commit>".
-            # - semver -- Semantic version (e.g. 0.0.0)
-            # - data -- format YYYYMMDD
-            # - commit -- consists of 8-9 first characters of commit SHA
-            matched = re.search(r"[0-9]+\.[0-9]+\.[0-9]+\+[0-9]{8}git[0-9a-fA-F]{8,9}", name)
-            if not matched:
-                raise Exception(f"Can't find proper renode version string in {name}")
+            if renode_version is None:
+                # This regex searches for "<semver>+<date>git<commit>".
+                # - semver -- Semantic version (e.g. 0.0.0)
+                # - data -- format YYYYMMDD
+                # - commit -- consists of 8-9 first characters of commit SHA
+                matched = re.search(r"[0-9]+\.[0-9]+\.[0-9]+\+[0-9]{8}git[0-9a-fA-F]{8,9}", name)
+                if not matched:
+                    raise self.UnableToFindVersion(f"Can't find proper renode version string in {name}")
 
-            renode_version = matched.group(0)
+                renode_version = matched.group(0)
 
             final_path = self.build_package_path(target_dir_path, self.renode_variant, renode_version, direct)
 

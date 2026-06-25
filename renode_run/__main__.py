@@ -20,11 +20,12 @@ from typing_extensions import Annotated
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
+from urllib import request, error, parse
 
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
-from renode_run.utils import RenodeVariant, ConfigFile
+from renode_run.utils import RenodeVariant, ConfigFile, PortablePackage
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST, package_type
 
@@ -77,6 +78,67 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
         direct=direct,
         force=force,
     )
+
+@app.command("install", help="install Renode from specified source (Linux and Windows only!)")
+def install_command(source: Annotated[str, typer.Argument(help='specifies Renode package source (version, local archive or link to remote)')],
+                    artifacts_path: artifacts_path_annotation = None,
+                    path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode install')] = None,
+                    direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
+                    renode_variant: RenodeVariant = RenodeVariant.default(),
+                    version_override: Annotated[str, typer.Option("--version-override", help='override package version information')] = None):
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
+    target_dir_path = path or artifacts_path / RENODE_TARGET_DIRNAME
+    config_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
+    config = ConfigFile(config_path, package_type())
+
+    local_package_path = None
+    is_local_file = Path(source).is_file()
+    url = parse.urlparse(source)
+    if is_local_file:
+        local_package_path = Path(source)
+        print("Installing from local package...")
+    elif url.scheme:
+        print("Downloading package from remote...")
+
+        # Do not auto-remove local resources, as urlretrieve doesn't copy local files.
+        is_localhost = url.hostname == "localhost" or url.hostname is None
+        is_local_file = url.scheme == "file" and is_localhost
+
+        try:
+            renode_package, _ = request.urlretrieve(source, reporthook=PortablePackage._report_progress())
+        except error.HTTPError:
+            print("Package could not be downloaded. Check if you have working internet connection and provided link is correct")
+            sys.exit(1)
+
+        if os.name == 'nt' and url.scheme == "file":
+            # On Windows request.urlretrieve returns a malformed path for 'file' URI scheme.
+            renode_package = request.url2pathname(url.path)
+
+        local_package_path = Path(renode_package)
+        print("Downloaded package to:", local_package_path)
+    else:
+        print("Interpreting source as Renode version string")
+        download_command(artifacts_path, path, direct, True, renode_variant, source)
+        return
+
+    package = package_type()(renode_variant, None, local_package_path, not is_local_file)
+
+    os.makedirs(target_dir_path, exist_ok=True)
+    
+    try:
+        (final_path, version_str) = package.extract(target_dir_path, direct, version_override)
+    except package_type().UnableToFindVersion:
+        print("Package does not contain version information. Please provide the version name using '--version-override' option")
+        sys.exit(1)
+    except:
+        print("Unable to extract package. Please make sure the provided source contains a Renode portable package for Your platform")
+        sys.exit(1)
+
+    print(f"Installed Renode({version_str}) to {final_path}")
+
+    config.update_download(renode_variant, version_str, final_path, False)
+    config.save_config()
+
 
 @app.command("remove", help="remove Renode installation")
 def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to remove (indicated by version or path)')],
