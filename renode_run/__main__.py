@@ -139,6 +139,48 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
     config.update_download(renode_variant, version_str, final_path, False)
     config.save_config()
 
+@app.command("default", help="choose default Renode installation")
+def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to set as default (indicated by version or path)')] = None,
+                   artifacts_path: artifacts_path_annotation = None,
+                   renode_variant: RenodeVariant = RenodeVariant.default()):
+    artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
+    config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
+
+    config_file = ConfigFile(config_file_path, package_type())
+
+    if renode_instance is None:
+        default_path_str = config_file.get_default_path(renode_variant)
+        if default_path_str is None:
+            print(f"No default set for {renode_variant.value}")
+            exit(1)
+        else:
+            print(default_path_str)
+
+        return
+
+    (default_candidates, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_variant, renode_instance)
+
+    if not default_candidates:
+        print(f"No package identifiable by '{renode_instance}' are installed, exiting")
+        return
+
+    package_id = 1
+    if not unambiguos_match:
+        choices = []
+        for package_path in default_candidates:
+            print(f"{package_id}. {str(package_path)}")
+            choices.append(str(package_id))
+            package_id += 1
+
+        print()
+        response = Prompt.ask(f"Enter number of the instance to set as default:\n", choices=choices)
+        package_id = int(response)
+
+    package_path = default_candidates[package_id - 1]
+    config_file.update_default(renode_variant, package_path)
+    config_file.save_config()
+    print(f"Package located at {package_path} set as default for {renode_variant.value}")
+
 
 @app.command("remove", help="remove Renode installation")
 def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to remove (indicated by version or path)')],
