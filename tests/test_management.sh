@@ -93,6 +93,43 @@ test_remove_does_not_affect_other_versions()
   fi
 }
 
+test_default()
+{
+  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+  renode-run download $RENODE_VERSION
+  renode-run download
+  if ! [ $(renode-run list 2>&1 | grep "renode-$RENODE_VERSION" | grep -c "default") == 0 ]
+  then
+    echo "Last downloaded Renode should be listed and marked as default"
+    exit 1
+  fi
+
+  renode-run default $RENODE_VERSION
+
+  if ! [ $(renode-run list 2>&1 | grep "renode-$RENODE_VERSION" | grep -c "default") == 1 ]
+  then
+    echo "Default command should mark specified version as default"
+    exit 1
+  fi
+}
+
+test_default_output()
+{
+    local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+    if [[ "$OSTYPE" == "linux"* ]]; then
+        local INSTALL_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
+    else
+        local INSTALL_PATH="$(cygpath -w "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION")"
+    fi
+
+    renode-run download $RENODE_VERSION
+    if ! [ $(renode-run default) == "$INSTALL_PATH" ]
+    then
+        echo "Default command without parameters should print the path to default instance"
+        exit 1
+    fi
+}
+
 test_management=(
   test_list_command_output
   test_filter_clears_non_existent_installations
@@ -100,4 +137,6 @@ test_management=(
   test_remove_by_path
   test_remove_all_command
   test_remove_does_not_affect_other_versions
+  test_default
+  test_default_output
 )
