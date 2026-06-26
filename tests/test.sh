@@ -3,11 +3,13 @@
 set -eu
 
 . $(dirname "$0")/test_download.sh
+. $(dirname "$0")/test_install.sh
 . $(dirname "$0")/test_running.sh
 . $(dirname "$0")/test_management.sh
 
 tests=(
   "${test_download[@]}"
+  "${test_install[@]}"
   "${test_running[@]}"
   "${test_management[@]}"
 )
