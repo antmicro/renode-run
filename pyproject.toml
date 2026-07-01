@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "renode-run"
-version = "0.4.0"
+version = "0.5.0"
 authors = [{name = "Antmicro Ltd.", email = "contact@antmicro.com"}]
 description = "Download and run Renode without thinking about it"
 dependencies = [
