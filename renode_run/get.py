@@ -36,7 +36,11 @@ def download_renode(target_dir_path, config_path, renode_variant, version='lates
                 rmtree(package_dir)
         else:
             package_dir = package_type().build_package_path(target_dir_path, renode_variant, version, direct)
-            rmtree(package_dir)
+            if Path(package_dir).is_dir():
+                rmtree(package_dir)
+            elif Path(package_dir).exists():
+                print(f"Cannot force-install in {package_dir}\nPath occupied by non-directory object")
+                exit(1)
     else:
         if version == 'latest':
             latest_date, latest_version = config.get_latest_data()
