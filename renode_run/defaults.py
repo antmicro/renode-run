@@ -26,3 +26,11 @@ def get_venv_executable(venv_path):
         return venv_path / 'Scripts' / 'python.exe'
     else:
         raise Exception("Unsupported platform, renode-run is supported only on Linux, Windows and MacOS")
+
+def get_path_sep():
+    if os.name == 'posix':
+        return ':'
+    elif os.name == 'nt':
+        return ';'
+    else:
+        raise Exception("Unsupported platform, renode-run is supported only on Linux, Windows and MacOS")

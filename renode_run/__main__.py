@@ -22,7 +22,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from urllib import request, error, parse
 
-from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable
+from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable, get_path_sep
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
 from renode_run.utils import RenodeVariant, ConfigFile, PortablePackage
@@ -320,7 +320,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
         print(f'Found python in {python_dir}')
 
     env = os.environ
-    env['PATH'] = f'{python_dir}:' + (env['PATH'] or '')
+    env['PATH'] = get_path_sep().join((str(python_dir), env['PATH']))
     env["VIRTUAL_ENV"] = str(venv_path)
 
     ret = subprocess.run([renode_test] + renode_args, env=env)
