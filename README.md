@@ -40,10 +40,27 @@ renode-run demo --board 96b_nitrogen shell_module
 renode-run demo --board 96b_nitrogen my-software.elf
 ```
 
+Install Renode from specified source (version, local file or remote):
+```sh
+# Install specified Renode version from builds.renode.io
+renode-run install 1.16.1+20260620gitdc52b24c1
+
+# Install from local package
+renode-run install ~/Downloads/renode-1.16.1+20260708git9845e1cd8.linux.tar.gz
+
+# Install renode from GitHub release
+renode-run install https://github.com/renode/renode/releases/download/v1.16.1/renode-1.16.1.linux-portable-dotnet.tar.gz --version-override gh-1.16.1
+```
+
+> Note that using `install` command it is possible to install non-portable packages.  
+> Those versions will be able to run provided runtime dependencies are available.
+
 Manage installed Renode versions:
 
 ```sh
 renode-run list
 
 renode-run remove 1.16.1+20260620gitdc52b24c1
+
+renode-run default 1.16.1
 ```
