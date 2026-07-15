@@ -8,9 +8,9 @@ set -eu
 . $(dirname "$0")/test_management.sh
 
 tests=(
+  "${test_running[@]}"
   "${test_download[@]}"
   "${test_install[@]}"
-  "${test_running[@]}"
   "${test_management[@]}"
 )
 
