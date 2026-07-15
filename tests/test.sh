@@ -36,10 +36,12 @@ run_test()
 }
 
 
-trap "delete_test_files; exit 1" EXIT
+trap "delete_test_files; clear_package_cache; exit 1" EXIT
 for test in "${tests[@]}"
 do
   run_test "$test"
   delete_test_files
 done
 trap - EXIT
+
+clear_package_cache

@@ -1,10 +1,15 @@
 . $(dirname "$0")/common.sh
 
+RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+RENODE_VERSION_PACKAGE_PATH="$(cache_renode_package $RENODE_VERSION)"
+
+RENODE_LATEST_PACKAGE_PATH="$(cache_renode_package latest)"
+
+
 test_list_command_output()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
   renode-run download
-  renode-run download $RENODE_VERSION
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
   if ! [ $(renode-run list 2>&1 | grep "renode-$RENODE_VERSION" | grep -c "default") == 1 ]
   then
     echo "Last downloaded Renode should be listed and marked as default"
@@ -19,8 +24,7 @@ test_list_command_output()
 
 test_filter_clears_non_existent_installations()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
-  renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" --direct
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH" --path "$TEST_DOWNLOAD_PATH" --direct
   if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 1 ]
   then
     echo "List command should list directly downloaded Renode"
@@ -37,8 +41,7 @@ test_filter_clears_non_existent_installations()
 
 test_remove_command()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
-  renode-run download $RENODE_VERSION
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
 
   renode-run remove $RENODE_VERSION
@@ -51,8 +54,7 @@ test_remove_command()
 
 test_remove_by_path()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
-  renode-run download $RENODE_VERSION
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
 
   renode-run remove "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
@@ -65,9 +67,8 @@ test_remove_by_path()
 
 test_remove_all_command()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
-  renode-run download $RENODE_VERSION
-  renode-run download $RENODE_VERSION --path "$TEST_DOWNLOAD_PATH" --direct
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH" --path "$TEST_DOWNLOAD_PATH" --direct
   assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
   assert_artifact_exists "$TEST_DOWNLOAD_PATH" "renode"
 
@@ -81,9 +82,8 @@ test_remove_all_command()
 
 test_remove_does_not_affect_other_versions()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
   renode-run download
-  renode-run download $RENODE_VERSION
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
 
   renode-run remove $RENODE_VERSION
   if ! [ $(renode-run list 2>&1 | grep -c "latest") == 1 ]
@@ -95,9 +95,8 @@ test_remove_does_not_affect_other_versions()
 
 test_default()
 {
-  local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
-  renode-run download $RENODE_VERSION
-  renode-run download
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
+  renode-run install "$RENODE_LATEST_PACKAGE_PATH"
   if ! [ $(renode-run list 2>&1 | grep "renode-$RENODE_VERSION" | grep -c "default") == 0 ]
   then
     echo "Last downloaded Renode should be listed and marked as default"
@@ -115,14 +114,13 @@ test_default()
 
 test_default_output()
 {
-    local RENODE_VERSION=1.16.1+20260302gita3bdf4a87
     if [[ "$OSTYPE" == "linux"* ]]; then
         local INSTALL_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
     else
         local INSTALL_PATH="$(cygpath -w "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION")"
     fi
 
-    renode-run download $RENODE_VERSION
+    renode-run install "$RENODE_VERSION_PACKAGE_PATH"
     if ! [ $(renode-run default) == "$INSTALL_PATH" ]
     then
         echo "Default command without parameters should print the path to default instance"
