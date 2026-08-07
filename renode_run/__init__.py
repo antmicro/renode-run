@@ -5,8 +5,9 @@
 # Full license text is available in 'LICENSE'.
 #
 
-from renode_run.get import get_default_renode_path
+from renode_run.get import download_renode, get_renode
 
 __all__ = [
-    "get_default_renode_path",
+    "download_renode",
+    "get_renode"
 ]
