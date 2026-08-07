@@ -13,7 +13,7 @@ RENODE_LATEST_PACKAGE_PATH="$(cache_renode_package latest)"
 test_default_behaviour()
 {
   renode-run -- $PARAMS -e "q"
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH" "renode-*"
 }
 
 #Setting custom artifacts path should work the same for all commands,
@@ -22,27 +22,27 @@ test_default_behaviour_with_custom_artifacts_path()
 {
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
   renode-run -a "$TEST_ARTIFACTS_PATH" -- $PARAMS -e "q"
-  assert_artifact_exists "$TEST_ARTIFACTS_PATH/renode-run.download/dotnet-portable" "renode-*"
+  assert_artifact_exists "$TEST_ARTIFACTS_PATH/renode-run.download" "renode-*"
 }
 
 test_using_exec_command_explicitly()
 {
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
   renode-run exec -- $PARAMS -e "q"
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH" "renode-*"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH" "renode-*"
 }
 
 test_running_renode-test()
 {
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
-  renode-run test -- "$DEFAULT_DOTNET_PORTABLE_PATH/renode-"*"/$ROBOT_TEST"
+  renode-run test -- "$DEFAULT_INSTALL_PATH/renode-"*"/$ROBOT_TEST"
   assert_artifact_exists "$DEFAULT_ARTIFACTS_PATH/renode-run.venv" "pyvenv.cfg"
 }
 
 test_using_custom_venv_directory()
 {
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
-  renode-run test --venv "$TEST_VENV_PATH" -- "$DEFAULT_DOTNET_PORTABLE_PATH/renode-"*"/$ROBOT_TEST"
+  renode-run test --venv "$TEST_VENV_PATH" -- "$DEFAULT_INSTALL_PATH/renode-"*"/$ROBOT_TEST"
   assert_artifact_exists "$TEST_VENV_PATH" "pyvenv.cfg"
 }
 

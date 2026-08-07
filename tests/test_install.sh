@@ -33,13 +33,13 @@ test_install_latest_release_from_file()
 test_install_latest_release_override_name()
 {
   renode-run install "$PORTABLE_LATEST" --version-override custom
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-custom" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-custom" "renode"
 }
 
 test_install_numbered_release()
 {
   renode-run install "$PORTABLE_NUMBERED" --version-override "$RENODE_VERSION"
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION" "renode"
 }
 
 test_install_numbered_release_from_file()
@@ -47,7 +47,7 @@ test_install_numbered_release_from_file()
   mkdir -p "$TEST_PLAYGROUND_PATH"
   curl -o "${TEST_PLAYGROUND_PATH}/$PACKAGE_NAME" "$PORTABLE_NUMBERED"
   renode-run install "${TEST_PLAYGROUND_PATH}/$PACKAGE_NAME" --version-override "$RENODE_VERSION"
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION" "renode"
   assert_artifact_exists "$TEST_PLAYGROUND_PATH" "$PACKAGE_NAME"
 }
 
@@ -66,7 +66,7 @@ test_installing_selected_renode_version()
   local RENODE_VERSION_COMMIT=${RENODE_VERSION: -9:8}
   local RENODE_VERSION_NUMBER=${RENODE_VERSION:0:6}
   renode-run download $RENODE_VERSION
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION" "renode"
   if ! [ $(renode-run -- --version | grep -c -e "Renode v$RENODE_VERSION_NUMBER" -e "build: $RENODE_VERSION_COMMIT") == 2 ]
   then
     echo "Downloaded renode version doesn't match"

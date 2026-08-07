@@ -25,7 +25,7 @@ from urllib import request, error, parse
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable, get_path_sep
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
-from renode_run.utils import RenodeVariant, ConfigFile, PortablePackage
+from renode_run.utils import ConfigFile, PortablePackage, PackageInfo
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST, package_type
 from renode_run.prompts import RemoveInstancesPrompt
@@ -65,7 +65,6 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
                      force: Annotated[bool, typer.Option("-f", "--force/ ", help='download renode even if it is already present')] = False,
-                     renode_variant: RenodeVariant = RenodeVariant.default(),
                      version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
@@ -74,7 +73,6 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
     download_renode(
         target_dir_path=path or artifacts_path / RENODE_TARGET_DIRNAME,
         config_path=artifacts_path / RENODE_RUN_CONFIG_FILENAME,
-        renode_variant=renode_variant,
         version=version,
         direct=direct,
         force=force,
@@ -85,7 +83,6 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
                     artifacts_path: artifacts_path_annotation = None,
                     path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode install')] = None,
                     direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
-                    renode_variant: RenodeVariant = RenodeVariant.default(),
                     version_override: Annotated[str, typer.Option("--version-override", help='override package version information')] = None):
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     target_dir_path = path or artifacts_path / RENODE_TARGET_DIRNAME
@@ -119,10 +116,10 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         print("Downloaded package to:", local_package_path)
     else:
         print("Interpreting source as Renode version string")
-        download_command(artifacts_path, path, direct, True, renode_variant, source)
+        download_command(artifacts_path, path, direct, True, source)
         return
 
-    package = package_type()(renode_variant, None, local_package_path, not is_local_file)
+    package = package_type()(None, local_package_path, not is_local_file)
 
     os.makedirs(target_dir_path, exist_ok=True)
     
@@ -137,29 +134,28 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
 
     print(f"Installed Renode({version_str}) to {final_path}")
 
-    config.update_download(renode_variant, version_str, final_path, False)
+    config.update_download(version_str, final_path, False)
     config.save_config()
 
 @app.command("default", help="choose default Renode installation")
 def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to set as default (indicated by version or path)')] = None,
-                   artifacts_path: artifacts_path_annotation = None,
-                   renode_variant: RenodeVariant = RenodeVariant.default()):
+                   artifacts_path: artifacts_path_annotation = None):
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
 
     config_file = ConfigFile(config_file_path, package_type())
 
     if renode_instance is None:
-        default_path_str = config_file.get_default_path(renode_variant)
+        default_path_str = config_file.get_default_path()
         if default_path_str is None:
-            print(f"No default set for {renode_variant.value}")
+            print(f"No default Renode version set!")
             exit(1)
         else:
             print(default_path_str)
 
         return
 
-    (default_candidates, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_variant, renode_instance)
+    (default_candidates, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_instance)
 
     if not default_candidates:
         print(f"No package identifiable by '{renode_instance}' are installed, exiting")
@@ -178,9 +174,9 @@ def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode 
         package_id = int(response)
 
     package_path = default_candidates[package_id - 1]
-    config_file.update_default(renode_variant, package_path)
+    config_file.update_default(package_path)
     config_file.save_config()
-    print(f"Package located at {package_path} set as default for {renode_variant.value}")
+    print(f"Package located at {package_path} set as defaults")
 
 
 @app.command("remove", help="remove Renode installation")
@@ -192,7 +188,7 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
 
     config_file = ConfigFile(config_file_path, package_type())
 
-    (packages_to_remove, unambiguos_match) = get_matching_installed_renode_instances(config_file, None, renode_instance)
+    (packages_to_remove, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_instance)
 
     if not packages_to_remove:
         print(f"No package with version '{renode_instance}' installed, exiting")
@@ -220,8 +216,7 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
 def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')],
                  binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
                  artifacts_path: artifacts_path_annotation = None,
-                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False,
-                 renode_variant: RenodeVariant = RenodeVariant.default()):
+                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
 
@@ -237,7 +232,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
         print('Choose one of the platforms listed above and try again.')
         sys.exit(1)
 
-    renode_path = get_renode(artifacts_path, renode_variant)
+    renode_path = get_renode(artifacts_path)
 
     if renode_path is None:
         sys.exit(1)
@@ -254,11 +249,10 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("exec", help="execute Renode with arguments")
-def exec_command(artifacts_path: artifacts_path_annotation = None, 
-                 renode_variant: RenodeVariant = RenodeVariant.default()):
+def exec_command(artifacts_path: artifacts_path_annotation = None):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
-    renode = get_renode(artifacts_path, renode_variant)
+    renode = get_renode(artifacts_path)
     if renode is None:
         sys.exit(1)
 
@@ -270,11 +264,10 @@ def exec_command(artifacts_path: artifacts_path_annotation = None,
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("test", help="execute renode-test with arguments")
 def test_command(artifacts_path: artifacts_path_annotation = None,
-                 venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None,
-                 renode_variant: RenodeVariant = RenodeVariant.default()):
+                 venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
-    renode_path = get_renode(artifacts_path, renode_variant)
+    renode_path = get_renode(artifacts_path)
     if renode_path is None:
         sys.exit(1)
 
@@ -318,29 +311,23 @@ def list_command(artifacts_path: artifacts_path_annotation = None):
 
     config_file = ConfigFile(config_file_path, package_type())
 
-    default_dotnet_package_path = config_file.get_default_path(RenodeVariant.DOTNET_PORTABLE)
-    default_mono_package_path = config_file.get_default_path(RenodeVariant.MONO_PORTABLE)
+    default_package_path = config_file.get_default_path()
 
     (_, latest_version) = config_file.get_latest_data()
 
     release_table = Table(box=None, show_edge=False)
     release_table.add_column("Package Path")
     release_table.add_column("Version")
-    release_table.add_column("Renode Variant")
     release_table.add_column("Tags")
 
-    for (package_path_str, (version, variant)) in config_file.get_renode_installs():
-        tags = []
-
-        if package_path_str == default_dotnet_package_path:
+    for (package_path, version, tags) in config_file.get_renode_installs_info():
+        if str(package_path) == default_package_path:
             tags.append("default")
-        elif package_path_str == default_mono_package_path:
-            tags.append("default-mono")
 
         if version == latest_version:
             tags.append("latest")
 
-        release_table.add_row(package_path_str, version, variant, " ".join(tags) if tags else "-")
+        release_table.add_row(str(package_path), version, " ".join(tags) if tags else "-")
 
     # If rich Console fails to deduce console width it defaults to 80,
     # which does not allow for full package-paths to be printed
@@ -352,13 +339,12 @@ def list_command(artifacts_path: artifacts_path_annotation = None):
 # Calling renode-run without arguments runs renode from default path
 @app.callback(invoke_without_command=True)
 def parse_artifacts_path(ctx: typer.Context,
-                         artifacts_path: artifacts_path_annotation = None,
-                         renode_variant: RenodeVariant = RenodeVariant.default()):
+                         artifacts_path: artifacts_path_annotation = None):
     # For backward compatibility we're allowing to pass artifacts_path before specifying the command
     global global_artifacts_path
     global_artifacts_path = artifacts_path
     if ctx.invoked_subcommand is None:
-        exec_command(artifacts_path, renode_variant)
+        exec_command(artifacts_path)
 
 
 def main():

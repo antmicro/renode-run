@@ -42,7 +42,7 @@ test_filter_clears_non_existent_installations()
 test_remove_command()
 {
   renode-run install "$RENODE_VERSION_PACKAGE_PATH"
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION" "renode"
 
   renode-run remove $RENODE_VERSION
   if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 0 ]
@@ -55,9 +55,9 @@ test_remove_command()
 test_remove_by_path()
 {
   renode-run install "$RENODE_VERSION_PACKAGE_PATH"
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION" "renode"
 
-  renode-run remove "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
+  renode-run remove "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION"
     if ! [ $(renode-run list 2>&1 | grep -c "$RENODE_VERSION") == 0 ]
   then
     echo "Remove command should remove Renode installation"
@@ -69,7 +69,7 @@ test_remove_all_command()
 {
   renode-run install "$RENODE_VERSION_PACKAGE_PATH"
   renode-run install "$RENODE_VERSION_PACKAGE_PATH" --path "$TEST_DOWNLOAD_PATH" --direct
-  assert_artifact_exists "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION" "renode"
+  assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION" "renode"
   assert_artifact_exists "$TEST_DOWNLOAD_PATH" "renode"
 
   renode-run remove $RENODE_VERSION --remove-all
@@ -115,9 +115,9 @@ test_default()
 test_default_output()
 {
     if [[ "$OSTYPE" == "linux"* ]]; then
-        local INSTALL_PATH="$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION"
+        local INSTALL_PATH="$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION"
     else
-        local INSTALL_PATH="$(cygpath -w "$DEFAULT_DOTNET_PORTABLE_PATH/renode-$RENODE_VERSION")"
+        local INSTALL_PATH="$(cygpath -w "$DEFAULT_INSTALL_PATH/renode-$RENODE_VERSION")"
     fi
 
     renode-run install "$RENODE_VERSION_PACKAGE_PATH"

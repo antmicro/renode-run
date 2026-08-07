@@ -11,7 +11,7 @@ import weakref
 
 from pathlib import Path
 
-from renode_run.utils import PortableArchive, PortablePackage, RenodeVariant
+from renode_run.utils import PortableArchive, PortablePackage
 
 RENODE_EXECUTABLE = "renode"
 RENODE_TEST = "renode-test"
@@ -41,11 +41,9 @@ class TarArchive(PortableArchive):
 
 
 class LinuxPackage(PortablePackage):
-    def __init__(self, renode_variant, version, local_package_path = None, remove_after_use = False):
-        self.renode_variant = renode_variant
-
+    def __init__(self, version, local_package_path = None, remove_after_use = False):
         if local_package_path is None:
-            self.package_path = self.download_package(renode_variant, version)
+            self.package_path = self.download_package(version)
             self._finalizer = weakref.finalize(self, os.remove, self.package_path)
         else:
             self.package_path = local_package_path
@@ -60,11 +58,8 @@ class LinuxPackage(PortablePackage):
         self.ar.close()
 
     @staticmethod
-    def get_package_name(renode_variant, version):
-        if renode_variant == RenodeVariant.MONO_PORTABLE:
-            return f"renode-{version}.linux-mono-portable.tar.gz"
-        elif renode_variant == RenodeVariant.DOTNET_PORTABLE:
-            return f"renode-{version}.linux-portable.tar.gz"
+    def get_package_name(version):
+        return f"renode-{version}.linux-portable.tar.gz"
         
     @staticmethod
     def get_artifact_name():

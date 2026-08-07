@@ -15,7 +15,7 @@ import sys
 import time
 
 from abc import ABC, abstractmethod
-from enum import Enum
+from typing import NamedTuple
 from pathlib import Path
 from urllib import request, error
 from shutil import rmtree
@@ -23,15 +23,6 @@ from shutil import rmtree
 from renode_run.defaults import DASHBOARD_LINK, DEFAULT_RENODE_ARTIFACTS_DIR
 
 DOWNLOAD_PROGRESS_DELAY = 1
-
-
-class RenodeVariant(str, Enum):
-    DOTNET_PORTABLE = "dotnet-portable"
-    MONO_PORTABLE = "mono-portable"
-
-    @staticmethod
-    def default():
-        return RenodeVariant.DOTNET_PORTABLE
 
 
 class PortableArchive(ABC):
@@ -53,7 +44,7 @@ class PortableArchive(ABC):
 
 class PortablePackage(ABC):
     @abstractmethod
-    def __init__(self, renode_variant, version):
+    def __init__(self, version):
         pass
 
     @abstractmethod
@@ -86,24 +77,24 @@ class PortablePackage(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_package_name(renode_variant, version):
+    def get_package_name(version):
         pass
 
     @staticmethod
-    def build_package_path(target_dir_path, renode_variant, version, direct):
+    def build_package_path(target_dir_path, version, direct):
         if direct:
             # When the --direct argument is passed, we would like to
             # extract contents of the archive directly to the path given by the user.
             return target_dir_path
         else:
-            return target_dir_path / f"{renode_variant.value}/renode-{version}"
+            return target_dir_path / f"renode-{version}"
 
     @classmethod
     def path_contains_renode(cls, path):
         return Path.exists(path / cls.get_artifact_name())
 
-    def download_package(self, renode_variant, version):
-        package_name = self.get_package_name(renode_variant, version)
+    def download_package(self, version):
+        package_name = self.get_package_name(version)
 
         try:
             renode_package, _ = request.urlretrieve(f"https://builds.renode.io/{package_name}", reporthook=self._report_progress())
@@ -137,7 +128,7 @@ class PortablePackage(ABC):
 
                 renode_version = matched.group(0)
 
-            final_path = self.build_package_path(target_dir_path, self.renode_variant, renode_version, direct)
+            final_path = self.build_package_path(target_dir_path, renode_version, direct)
 
             ar.extract_members(final_path)
             return (final_path, renode_version)
@@ -151,10 +142,12 @@ def choose_artifacts_path(lower_priority_path, higher_priority_path):
     return DEFAULT_RENODE_ARTIFACTS_DIR
 
 
+PackageInfo = NamedTuple('PackageInfo', [('package_path', Path), ('version', str), ('extra_tags', list[str])])
+
 class ConfigFile:
     # Different major versions are not compatible.
     # Minor versions are backwards-compatible.
-    CONFIG_VERSION = "2.0"
+    CONFIG_VERSION = "2.1"
 
     RENODE_RUN_CONFIG_VERSION = 'version'
     RENODE_INSTALLS = 'installations'
@@ -163,6 +156,7 @@ class ConfigFile:
     LATEST_DATE = 'latest_date'
     LATEST_VERSION = 'latest_version'
     DEFAULT_VERSION = 'default'
+    DOTNET_PORTABLE = "dotnet-portable"
 
     @classmethod
     def expand_version(cls, version_string):
@@ -178,6 +172,8 @@ class ConfigFile:
         self.portable_package = portable_package
         self.config = None
 
+        should_save = False
+
         if config_path.exists():
             config = json.loads(config_path.read_text())
             config_version = config.get(self.RENODE_RUN_CONFIG_VERSION, None)
@@ -192,16 +188,25 @@ class ConfigFile:
                 print(f"Renode-run config version ({config_version}) is not compatible with this renode-run ({self.CONFIG_VERSION}).")
                 print(f"Please clear the config file located at '{self.config_path}' or change renode-run version.")
                 exit(1)
-            else:
-                self._update_version(config)
-                self.config = config
 
-        should_save = False
+            package_defaults = config[self.DEFAULT_VERSION]
 
-        if self.config is None:
+            # Config version 2.1 drops Mono support; from this point there is one default version.
+            if isinstance(package_defaults, dict):
+                has_mono_default = any("mono" in default_version for default_version in package_defaults)
+                if has_mono_default:
+                    print("Renode-run has removed explicit support for Mono Renode packages.", file=sys.stderr)
+                    print("Mono/Dotnet default has been replaced by global default initialized by current Dotnet default.", file=sys.stderr)
+
+                dotnet_default = package_defaults.get(self.DOTNET_PORTABLE, None)
+                config[self.DEFAULT_VERSION] = dotnet_default
+                should_save = True
+
+            self.config = config
+        else:
             self.config = {}
-            self._update_version(self.config)
-            should_save = True
+
+        self._update_version(self.config)
 
         should_save |= self._filter_existing()
 
@@ -215,27 +220,26 @@ class ConfigFile:
         with open(self.config_path, mode="w") as f:
             json.dump(self.config, f)
 
-    def _filter_defaults(self):
-        def default_present(default_entry):
-            (variant, path_str) = default_entry
-            (_, package_variant) = self.get_package_info(Path(path_str))
-            return variant == package_variant
+    def _check_default(self):
+        default_path = self.get_default_path()
+        if default_path is None:
+            return
 
-        defaults = self.config.get(self.DEFAULT_VERSION, {}).items()
-        self.config[self.DEFAULT_VERSION] = dict(filter(default_present, defaults))
+        if default_path not in self.get_renode_installs():
+            self.config[self.DEFAULT_VERSION] = None
 
     def _filter_existing(self):
         def check_package(package):
             (path_str, _) = package
             return self.portable_package.path_contains_renode(Path(path_str))
 
-        package_list = self.config.get(self.RENODE_INSTALLS, {}).items()
+        package_list = self.get_renode_installs().items()
         existing_packages = dict(filter(check_package, package_list))
 
         config_updated = len(package_list) != len(existing_packages)
         if config_updated:
             self.config[self.RENODE_INSTALLS] = existing_packages
-            self._filter_defaults()
+            self._check_default()
 
         return config_updated
 
@@ -248,39 +252,41 @@ class ConfigFile:
 
         return (None, None)
 
-    @classmethod
-    def extract_info_from_package_data(cls, package_data):
-        if package_data is not None:
-            version = package_data.get(cls.RENODE_INSTALL_VERSION, None)
-            variant = package_data.get(cls.RENODE_INSTALL_VARIANT, None)
-            return (version, variant)
-        else:
-            return (None, None)
-
     def get_renode_installs(self):
-        def expand_install_entry(package):
-            (path_str, package_data) = package
-            return (path_str, self.extract_info_from_package_data(package_data))
+        return self.config.get(self.RENODE_INSTALLS, {})
 
-        return map(expand_install_entry, self.config.get(self.RENODE_INSTALLS, {}).items())
+    def get_renode_installs_info(self):
+        def get_package_info(package):
+            (package_path_str, info) = package
+            version = info.get(self.RENODE_INSTALL_VERSION, None)
 
-    def get_default_path(self, variant):
-        default_version_dict = self.config.get(self.DEFAULT_VERSION, {})
-        return default_version_dict.get(variant.value, None)
+            tags = []
 
-    def get_package_info(self, path):
-        package_dict = self.config.get(self.RENODE_INSTALLS, {}).get(str(path), None)
-        return self.extract_info_from_package_data(package_dict)
+            # In previous renode-run releases 'variant' differentiated between Dotnet and Mono packages.
+            if variant := info.get(self.RENODE_INSTALL_VARIANT, None):
+                # DOTNET_PORTABLE was the default variant and now is implicit.
+                if variant != self.DOTNET_PORTABLE:
+                    tags.append(variant)
+
+            return PackageInfo(Path(package_path_str), version, tags)
+
+        return map(get_package_info, self.get_renode_installs().items())
+
+    def get_default_path(self):
+        return self.config.get(self.DEFAULT_VERSION, None)
     
-    def update_default(self, variant, path):
-        self.config.setdefault(self.DEFAULT_VERSION, {})[variant.value] = str(path)
+    def update_default(self, path):
+        self.config[self.DEFAULT_VERSION] = str(path)
 
-    def update_download(self, variant, version, path, is_latest):
+    def get_package_version(self, path):
+        if package_info := self.get_renode_installs().get(str(path), None):
+            return package_info.get(self.RENODE_INSTALL_VERSION)
+
+    def update_download(self, version, path, is_latest):
         self.config.setdefault(self.RENODE_INSTALLS, {})[str(path)] = {
             self.RENODE_INSTALL_VERSION: version,
-            self.RENODE_INSTALL_VARIANT: variant.value,
         }
-        self.update_default(variant, path)
+        self.update_default(path)
         if is_latest:
             self.config[self.LATEST_DATE] = datetime.date.today().isoformat()
             self.config[self.LATEST_VERSION] = version
@@ -290,8 +296,8 @@ class ConfigFile:
             return
         
         rmtree(path)
-        self.config.get(self.RENODE_INSTALLS, {}).pop(str(path))
-        self._filter_defaults()
+        self.get_renode_installs().pop(str(path))
+        self._check_default()
         print(f"Removed package from: {path}")
 
 
