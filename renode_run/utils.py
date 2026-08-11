@@ -188,7 +188,7 @@ class ConfigFile:
             (major, minor) = self.expand_version(self.CONFIG_VERSION)
             (config_major, config_minor) = self.expand_version(config_version)
             if config_major != major or config_minor > minor:
-                print(f"Renode-run config version ({config_major}.{minor}) is not compatible with this renode-run ({self.CONFIG_VERSION}).")
+                print(f"Renode-run config version ({config_version}) is not compatible with this renode-run ({self.CONFIG_VERSION}).")
                 print(f"Please clear the config file located at '{self.config_path}' or change renode-run version.")
                 exit(1)
             else:
