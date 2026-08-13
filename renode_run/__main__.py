@@ -59,6 +59,19 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             exit(err.returncode)
 
 
+def renode_run(renode_path, args=[], env=None):
+    try:
+        result = subprocess.run([str(renode_path)] + args, env=env)
+        return result
+    except PermissionError:
+        print("Failed to run Renode!", file=sys.stderr)
+        print(f"File '{str(renode_path)}' is missing necessary 'read and run' permisions.", file=sys.stderr)
+        exit(1)
+    except Exception as e:
+        print(f"Failed to run Renode!\n{e}", file=sys.stderr)
+        exit(1)
+
+
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("download", help="download Renode portable (Linux and Windows only!)")
 def download_command(artifacts_path: artifacts_path_annotation = None,
@@ -243,7 +256,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
         temp.write(script.encode("utf-8"))
         temp.flush()
         temp.close()
-        ret = subprocess.run([str(renode_path), temp.name] + renode_args)
+        ret = renode_run(renode_path, [temp.name] + renode_args)
     sys.exit(ret.returncode)
 
 
@@ -257,7 +270,7 @@ def exec_command(artifacts_path: artifacts_path_annotation = None):
         sys.exit(1)
 
     sys.stdout.flush()
-    ret = subprocess.run([str(renode)] + renode_args)
+    ret = renode_run(renode, renode_args)
     sys.exit(ret.returncode)
 
 
@@ -300,7 +313,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
     env['PATH'] = get_path_sep().join((str(python_dir), env['PATH']))
     env["VIRTUAL_ENV"] = str(venv_path)
 
-    ret = subprocess.run([renode_test] + renode_args, env=env)
+    ret = renode_run(renode_test, renode_args, env)
     sys.exit(ret.returncode)
 
 
