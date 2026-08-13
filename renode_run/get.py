@@ -64,7 +64,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
 
     os.makedirs(target_dir_path, exist_ok=True)
 
-    (final_path, renode_version_str) = package.extract(target_dir_path, direct)
+    (final_path, renode_version_str) = package.extract(target_dir_path, direct, force)
 
     print(f"Renode stored in {final_path}")
 

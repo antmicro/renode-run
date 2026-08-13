@@ -112,7 +112,7 @@ class PortablePackage(ABC):
     class UnableToFindVersion(Exception):
         pass
 
-    def extract(self, target_dir_path, direct, version_override=None):
+    def extract(self, target_dir_path, direct, force, version_override=None):
         with self as ar:
             name = ar.get_root_dir_name()
             renode_version = version_override
@@ -129,6 +129,11 @@ class PortablePackage(ABC):
                 renode_version = matched.group(0)
 
             final_path = self.build_package_path(target_dir_path, renode_version, direct)
+            is_dir_dirty = final_path.exists() and len(os.listdir(final_path)) != 0
+            if is_dir_dirty and not force:
+                print(f"Target directory '{target_dir_path}' is not empty!", file=sys.stderr)
+                print("Please clear the directory or use a '--force' option.", file=sys.stderr)
+                exit(1)
 
             ar.extract_members(final_path)
             return (final_path, renode_version)

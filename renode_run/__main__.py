@@ -77,7 +77,7 @@ def renode_run(renode_path, args=[], env=None):
 def download_command(artifacts_path: artifacts_path_annotation = None,
                      path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
-                     force: Annotated[bool, typer.Option("-f", "--force/ ", help='download renode even if it is already present')] = False,
+                     force: Annotated[bool, typer.Option("-f", "--force/ ", help='download and install Renode even if it is already present')] = False,
                      version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
@@ -96,6 +96,7 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
                     artifacts_path: artifacts_path_annotation = None,
                     path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode install')] = None,
                     direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
+                    force: Annotated[bool, typer.Option("-f", "--force/ ", help='install Renode even if directory is not empty')] = False,
                     version_override: Annotated[str, typer.Option("--version-override", help='override package version information')] = None):
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     target_dir_path = path or artifacts_path / RENODE_TARGET_DIRNAME
@@ -137,7 +138,7 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
     os.makedirs(target_dir_path, exist_ok=True)
     
     try:
-        (final_path, version_str) = package.extract(target_dir_path, direct, version_override)
+        (final_path, version_str) = package.extract(target_dir_path, direct, force, version_override)
     except package_type().UnableToFindVersion:
         print("Package does not contain version information. Please provide the version name using '--version-override' option")
         sys.exit(1)
