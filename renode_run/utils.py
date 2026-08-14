@@ -173,8 +173,9 @@ class ConfigFile:
     def _update_version(cls, config):
         config[cls.RENODE_RUN_CONFIG_VERSION] = cls.CONFIG_VERSION
 
-    def __init__(self, config_path, portable_package=None):
+    def __init__(self, config_path, portable_package):
         self.config_path = config_path
+        self.portable_package = portable_package
         self.config = None
 
         if config_path.exists():
@@ -201,9 +202,8 @@ class ConfigFile:
             self.config = {}
             self._update_version(self.config)
             should_save = True
-            
-        if portable_package:
-            should_save |= self._filter_existing(portable_package)
+
+        should_save |= self._filter_existing()
 
         if should_save:
             self.save_config()
@@ -224,10 +224,10 @@ class ConfigFile:
         defaults = self.config.get(self.DEFAULT_VERSION, {}).items()
         self.config[self.DEFAULT_VERSION] = dict(filter(default_present, defaults))
 
-    def _filter_existing(self, portable_package):
+    def _filter_existing(self):
         def check_package(package):
             (path_str, _) = package
-            return portable_package.path_contains_renode(Path(path_str))
+            return self.portable_package.path_contains_renode(Path(path_str))
 
         package_list = self.config.get(self.RENODE_INSTALLS, {}).items()
         existing_packages = dict(filter(check_package, package_list))
@@ -285,8 +285,8 @@ class ConfigFile:
             self.config[self.LATEST_DATE] = datetime.date.today().isoformat()
             self.config[self.LATEST_VERSION] = version
 
-    def remove_installation(self, portable_package, path):
-        if not portable_package.path_contains_renode(path):
+    def remove_installation(self, path):
+        if not self.portable_package.path_contains_renode(path):
             return
         
         rmtree(path)

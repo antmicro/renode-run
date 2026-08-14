@@ -200,7 +200,7 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
 
     if unambiguos_match or remove_all:
         for package_path in packages_to_remove:
-            config_file.remove_installation(package_type(), package_path)
+            config_file.remove_installation(package_path)
 
         config_file.save_config()
         return
@@ -210,7 +210,7 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
     selected_result = prompt_instance()
 
     for path_to_remove in selected_result:
-        config_file.remove_installation(package_type(), path_to_remove)
+        config_file.remove_installation(path_to_remove)
 
     config_file.save_config()
 

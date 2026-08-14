@@ -116,7 +116,7 @@ def get_matching_installed_renode_instances(config_file, renode_variant, renode_
 
 def get_renode(artifacts_dir, variant=RenodeVariant.default(), try_to_download=True, use_system_renode=True):
     config_path = artifacts_dir / RENODE_RUN_CONFIG_FILENAME
-    config = ConfigFile(config_path)
+    config = ConfigFile(config_path, package_type())
 
     renode_path = None
     if renode_path := get_installed_renode(config, variant):
