@@ -28,6 +28,7 @@ from renode_run.get import download_renode, get_renode, get_matching_installed_r
 from renode_run.utils import RenodeVariant, ConfigFile, PortablePackage
 from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST, package_type
+from renode_run.prompts import RemoveInstancesPrompt
 
 renode_args = []
 
@@ -204,28 +205,11 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
         config_file.save_config()
         return
 
-    REMOVE_NOTHING_OPTION = "N"
-    REMOVE_ALL_OPTION = "a"
+    prompt_instance = RemoveInstancesPrompt(packages_to_remove=packages_to_remove)
 
-    print("Found multiple instances of given version:")
-    package_id = 1
-    choices = [REMOVE_NOTHING_OPTION, REMOVE_ALL_OPTION]
-    for package_path in packages_to_remove:
-        print(f"{package_id}. {str(package_path)}")
-        choices.append(str(package_id))
-        package_id += 1
-    
-    print()
-    response = Prompt.ask(f"Enter number of the instance to remove: ({REMOVE_NOTHING_OPTION}=neither, {REMOVE_ALL_OPTION}=remove all)\n", choices=choices, default=REMOVE_NOTHING_OPTION, case_sensitive=False)
+    selected_result = prompt_instance()
 
-    if response == REMOVE_NOTHING_OPTION:
-        return
-    elif response == REMOVE_ALL_OPTION:
-        for package_path in packages_to_remove:
-            config_file.remove_installation(package_type(), package_path)
-    else:
-        package_id = int(response)
-        path_to_remove = packages_to_remove[package_id - 1]
+    for path_to_remove in selected_result:
         config_file.remove_installation(package_type(), path_to_remove)
 
     config_file.save_config()
