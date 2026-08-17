@@ -19,7 +19,7 @@ from pathlib import Path
 from typing_extensions import Annotated
 from rich.table import Table
 from rich.console import Console
-from rich.prompt import Prompt
+from rich.prompt import Prompt, PromptBase, InvalidResponse
 from urllib import request, error, parse
 
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable, get_path_sep
@@ -56,6 +56,75 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             print('Requirements have to be installed manually, or the environment has to be deleted before running command again')
             print(f'Environment path: {context.env_dir}')
             exit(err.returncode)
+
+
+class RemoveInstancesPrompt(PromptBase):
+    response_type = list
+
+    REMOVE_NOTHING_OPTION = "N"
+    REMOVE_ALL_OPTION = "a"
+
+    default = REMOVE_NOTHING_OPTION
+    case_sensitive = False
+
+    def __init__(self, packages_to_remove: list, *args, **kwargs):
+        self.packages_to_remove = packages_to_remove
+        self.max_val = len(packages_to_remove)
+
+        choices = [self.REMOVE_NOTHING_OPTION, self.REMOVE_ALL_OPTION]
+        for i in range(1, self.max_val + 1):
+            choices.append(str(i))
+
+        prompt_text = f"Enter number of the instance to remove: (e.g. 1 3-5) or ({self.REMOVE_NOTHING_OPTION}=neither, {self.REMOVE_ALL_OPTION}=remove all)\n"
+        kwargs.setdefault("choices", choices)
+        super().__init__(prompt_text, *args, **kwargs)
+
+    def pre_prompt(self):
+        print("Found multiple instances of given version:")
+        package_id = 1
+        for package_path in self.packages_to_remove:
+            print(f"{package_id}. {str(package_path)}")
+            package_id += 1
+
+    def process_response(self, value: str):
+        response_str = value.strip()
+
+        if response_str.lower() == self.REMOVE_NOTHING_OPTION.lower():
+            return []
+        elif response_str.lower() == self.REMOVE_ALL_OPTION.lower():
+            return list(range(1, self.max_val + 1))
+
+        return self.parse_range_selection(response_str, self.max_val)
+
+    # Parses space-separated numbers, ranges, and mixed selections (e.g., '1 3-5 7') into a sorted list of unique indices within the valid range
+    @staticmethod
+    def parse_range_selection(selection_str: str, max_val: int) -> list[int]:
+        selected_indices = set()
+        parts = selection_str.split()
+
+        try:
+            for part in parts:
+                if '-' in part:
+                    start_str, end_str = part.split('-', 1)
+                    start, end = int(start_str), int(end_str)
+
+                    range_start = max(1, min(start, end))
+                    range_end = min(max_val, max(start, end))
+
+                    for i in range(range_start, range_end + 1):
+                        selected_indices.add(i)
+                else:
+                    i = int(part)
+                    if 1 <= i <= max_val:
+                        selected_indices.add(i)
+                    else:
+                        raise ValueError(f"Index {i} out of range")
+        except(ValueError, InvalidResponse) as e:
+            if isinstance(e, InvalidResponse):
+                raise e
+            raise InvalidResponse("Invalid selection format. Please enter numbers or ranges (e.g. 1 3-5)")
+                    
+        return sorted(list(selected_indices))
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
@@ -204,28 +273,12 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
         config_file.save_config()
         return
 
-    REMOVE_NOTHING_OPTION = "N"
-    REMOVE_ALL_OPTION = "a"
+    prompt_instance = RemoveInstancesPrompt(packages_to_remove=packages_to_remove)
 
-    print("Found multiple instances of given version:")
-    package_id = 1
-    choices = [REMOVE_NOTHING_OPTION, REMOVE_ALL_OPTION]
-    for package_path in packages_to_remove:
-        print(f"{package_id}. {str(package_path)}")
-        choices.append(str(package_id))
-        package_id += 1
-    
-    print()
-    response = Prompt.ask(f"Enter number of the instance to remove: ({REMOVE_NOTHING_OPTION}=neither, {REMOVE_ALL_OPTION}=remove all)\n", choices=choices, default=REMOVE_NOTHING_OPTION, case_sensitive=False)
+    selected_result = prompt_instance()
 
-    if response == REMOVE_NOTHING_OPTION:
-        return
-    elif response == REMOVE_ALL_OPTION:
-        for package_path in packages_to_remove:
-            config_file.remove_installation(package_type(), package_path)
-    else:
-        package_id = int(response)
-        path_to_remove = packages_to_remove[package_id - 1]
+    for i in selected_result:
+        path_to_remove = packages_to_remove[i - 1]
         config_file.remove_installation(package_type(), path_to_remove)
 
     config_file.save_config()
