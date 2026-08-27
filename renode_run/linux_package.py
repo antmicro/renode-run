@@ -26,7 +26,7 @@ class TarArchive(PortableArchive):
 
     def get_root_dir_name(self):
         return self.ar.getnames()[0]
-    
+
     @staticmethod
     def remove_parent_directory(tar_file):
         new_path = Path(tar_file.path).parts[1:]
@@ -60,7 +60,7 @@ class LinuxPackage(PortablePackage):
     @staticmethod
     def get_package_name(version):
         return f"renode-{version}.linux-portable.tar.gz"
-        
+
     @staticmethod
     def get_artifact_name():
         return RENODE_EXECUTABLE
