@@ -29,9 +29,9 @@ class TarArchive(PortableArchive):
 
     @staticmethod
     def remove_parent_directory(tar_file):
-        new_path = Path(tar_file.path).parts[1:]
+        new_path = Path(tar_file.name).parts[1:]
         if new_path != ():
-            tar_file.path = Path(*new_path)
+            tar_file.name = str(Path(*new_path))
             return True
         return False
 
