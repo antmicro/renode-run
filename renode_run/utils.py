@@ -15,6 +15,7 @@ import time
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from collections.abc import Callable
 
 from renode_run.defaults import DASHBOARD_LINK
 from renode_run.url_resources import download_to_file, fetch_text, URLResourceError
@@ -24,7 +25,7 @@ DOWNLOAD_PROGRESS_DELAY = 1
 
 class PortableArchive(ABC):
     @abstractmethod
-    def __init__(self, ar_path):
+    def __init__(self, ar_path: Path) -> None:
         pass
 
     @abstractmethod
@@ -32,20 +33,20 @@ class PortableArchive(ABC):
         pass
 
     @abstractmethod
-    def get_root_dir_name(self):
+    def get_root_dir_name(self) -> str:
         pass
 
     @abstractmethod
-    def extract_members(self, final_path):
+    def extract_members(self, final_path: Path):
         pass
 
 class PortablePackage(ABC):
     @abstractmethod
-    def __init__(self, version):
+    def __init__(self, package_info: str | Path) -> None:
         pass
 
     @abstractmethod
-    def __enter__(self):
+    def __enter__(self) -> PortableArchive:
        pass
 
     @abstractmethod
@@ -53,10 +54,10 @@ class PortablePackage(ABC):
         pass
 
     @staticmethod
-    def _report_progress():
+    def _report_progress() -> Callable[[int, int, int], None]:
         start_time = previous_time = time.time()
 
-        def aux(count, size, filesize):
+        def aux(count: int, size: int, filesize: int) -> None:
             nonlocal previous_time
             current_time = time.time()
 
@@ -83,11 +84,11 @@ class PortablePackage(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_package_name(version):
+    def get_package_name(version: str) -> str:
         pass
 
     @staticmethod
-    def build_package_path(target_dir_path, version, direct):
+    def build_package_path(target_dir_path: Path, version: str, direct: bool) -> Path:
         if direct:
             # When the --direct argument is passed, we would like to
             # extract contents of the archive directly to the path given by the user.
@@ -96,10 +97,10 @@ class PortablePackage(ABC):
             return target_dir_path / f"renode-{version}"
 
     @classmethod
-    def path_contains_renode(cls, path):
+    def path_contains_renode(cls, path: Path) -> bool:
         return Path.exists(path / cls.get_artifact_name())
 
-    def download_package(self, version):
+    def download_package(self, version: str) -> Path:
         package_name = self.get_package_name(version)
 
         try:
@@ -111,13 +112,13 @@ class PortablePackage(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_artifact_name():
+    def get_artifact_name() -> str:
         pass
 
     class UnableToFindVersion(Exception):
         pass
 
-    def extract(self, target_dir_path, direct, force, version_override=None):
+    def extract(self, target_dir_path: Path, direct: bool, force: bool, version_override: str | None = None) -> tuple[Path, str]:
         with self as ar:
             name = ar.get_root_dir_name()
             renode_version = version_override
@@ -144,7 +145,7 @@ class PortablePackage(ABC):
 
 
 @functools.lru_cache
-def fetch_zephyr_version():
+def fetch_zephyr_version() -> str:
     try:
         return fetch_text(f"{DASHBOARD_LINK}/zephyr_sim/latest").strip()
     except URLResourceError as e:
@@ -152,7 +153,7 @@ def fetch_zephyr_version():
 
 
 @functools.lru_cache
-def fetch_renode_version():
+def fetch_renode_version() -> str:
     try:
         return fetch_text(f"{DASHBOARD_LINK}/zephyr_sim/{fetch_zephyr_version()}/latest").strip()
     except URLResourceError as e:

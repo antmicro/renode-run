@@ -18,39 +18,41 @@ RENODE_TEST = "renode-test"
 
 
 class TarArchive(PortableArchive):
-    def __init__(self, ar_path):
+    def __init__(self, ar_path: Path) -> None:
         self.ar = tarfile.open(ar_path)
 
-    def close(self):
+    def close(self) -> None:
         self.ar.close()
 
-    def get_root_dir_name(self):
+    def get_root_dir_name(self) -> str:
         return self.ar.getnames()[0]
 
     @staticmethod
-    def remove_parent_directory(tar_file):
+    def remove_parent_directory(tar_file: tarfile.TarInfo) -> bool:
         new_path = Path(tar_file.name).parts[1:]
         if new_path != ():
             tar_file.name = str(Path(*new_path))
             return True
         return False
 
-    def extract_members(self, final_path):
+    def extract_members(self, final_path: Path) -> None:
         members = filter(self.remove_parent_directory, self.ar.getmembers())
         self.ar.extractall(final_path, members=members)
 
 
 class LinuxPackage(PortablePackage):
-    def __init__(self, version, local_package_path = None, remove_after_use = False):
-        if local_package_path is None:
+    def __init__(self, package_info: str | Path, remove_after_use: bool = False) -> None:
+        if isinstance(package_info, str):
+            version = package_info
             self.package_path = self.download_package(version)
             self._finalizer = weakref.finalize(self, os.remove, self.package_path)
         else:
+            local_package_path = package_info
             self.package_path = local_package_path
             if remove_after_use:
                 self._finalizer = weakref.finalize(self, os.remove, self.package_path)
 
-    def __enter__(self):
+    def __enter__(self) -> PortableArchive:
        self.ar = TarArchive(self.package_path)
        return self.ar
 
@@ -58,9 +60,9 @@ class LinuxPackage(PortablePackage):
         self.ar.close()
 
     @staticmethod
-    def get_package_name(version):
+    def get_package_name(version: str) -> str:
         return f"renode-{version}.linux-portable.tar.gz"
 
     @staticmethod
-    def get_artifact_name():
+    def get_artifact_name() -> str:
         return RENODE_EXECUTABLE

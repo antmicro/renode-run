@@ -19,7 +19,7 @@ RENODE_RUN_CONFIG_FILENAME = "renode-run.json"
 RENODE_TARGET_DIRNAME = "renode-run.download"
 RENODE_TEST_VENV_DIRNAME = "renode-run.venv"
 
-def get_venv_executable(venv_path):
+def get_venv_executable(venv_path: Path) -> Path:
     if os.name == 'posix':
         return venv_path / 'bin' / 'python'
     elif os.name == 'nt':
@@ -27,7 +27,7 @@ def get_venv_executable(venv_path):
     else:
         raise Exception("Unsupported platform, renode-run is supported only on Linux, Windows and MacOS")
 
-def get_path_sep():
+def get_path_sep() -> str:
     if os.name == 'posix':
         return ':'
     elif os.name == 'nt':
