@@ -32,13 +32,15 @@ class RemoveInstancesPrompt(PromptBase):
 
     def process_response(self, value: str):
         response_str = value.strip()
+        selected_indices = None
 
         if response_str.lower() == self.REMOVE_NOTHING_OPTION.lower():
-            return []
+            selected_indices = []
         elif response_str.lower() == self.REMOVE_ALL_OPTION.lower():
-            return list(range(1, self.max_val + 1))
+            selected_indices = list(range(1, self.max_val + 1))
+        else:
+            selected_indices = self.parse_range_selection(response_str, self.max_val)
 
-        selected_indices = self.parse_range_selection(response_str, self.max_val)
         return [self.packages_to_remove[i - 1] for i in selected_indices]
 
     # Parses space-separated numbers, ranges, and mixed selections (e.g., '1 3-5 7') into a sorted list of unique indices within the valid range
