@@ -7,21 +7,21 @@
 
 import sys
 
-if sys.platform.startswith('linux'):
+if sys.platform == 'linux':
     from renode_run.linux_package import RENODE_EXECUTABLE, RENODE_TEST
     from renode_run.linux_package import LinuxPackage
 
     def package_type():
         return LinuxPackage
 
-elif sys.platform.startswith('win'):
+elif sys.platform == 'win32':
     from renode_run.windows_package import RENODE_EXECUTABLE, RENODE_TEST
     from renode_run.windows_package import WindowsPackage
 
     def package_type():
         return WindowsPackage
 
-elif sys.platform.startswith('darwin'):
+elif sys.platform == 'darwin':
     # MacOS executable names are compatible with the Linux ones.
     from renode_run.linux_package import RENODE_EXECUTABLE, RENODE_TEST
 
