@@ -134,10 +134,9 @@ def get_renode(artifacts_dir, try_to_download=True, use_system_renode=True):
                 use_system_renode=use_system_renode,
             )
         else:
-            print("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
+            sys.exit("Renode not found, could not download. Please run `renode-run download` manually or visit https://builds.renode.io")
 
     else:
         renode_path = Path(renode_path)
         print(f"Renode found in $PATH: {renode_path}. If you want to use the latest Renode version, consider running 'renode-run download'")
-
-    return renode_path
+        return renode_path
