@@ -5,32 +5,31 @@
 # Full license text is available in 'LICENSE'.
 #
 
+from pathlib import Path
 from rich.prompt import PromptBase, InvalidResponse
 
-class RemoveInstancesPrompt(PromptBase):
-    response_type = list
-
+class RemoveInstancesPrompt(PromptBase[list[Path]]):
     REMOVE_NOTHING_OPTION = "N"
     REMOVE_ALL_OPTION = "a"
 
     default = REMOVE_NOTHING_OPTION
     case_sensitive = False
 
-    def __init__(self, packages_to_remove: list, *args, **kwargs):
+    def __init__(self, packages_to_remove: list[Path], *args, **kwargs) -> None:
         self.packages_to_remove = packages_to_remove
         self.max_val = len(packages_to_remove)
 
         prompt_text = f'Enter number of the instance to remove: (e.g. "1 2", "3-5", "^4-6") or ({self.REMOVE_NOTHING_OPTION}=neither, {self.REMOVE_ALL_OPTION}=remove all)\n'
         super().__init__(prompt_text, *args, **kwargs)
 
-    def pre_prompt(self):
+    def pre_prompt(self) -> None:
         print("Found multiple instances of given version:")
         package_id = 1
         for package_path in self.packages_to_remove:
             print(f"{package_id}. {str(package_path)}")
             package_id += 1
 
-    def process_response(self, value: str):
+    def process_response(self, value: str) -> list[Path]:
         response_str = value.strip()
         selected_indices = None
 

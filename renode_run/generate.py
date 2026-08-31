@@ -27,7 +27,7 @@ echo "Use 'start' to run the demo"
 '''
 
 
-def generate_script(binary_name, platform, generate_repl):
+def generate_script(binary_name: str, platform: str, generate_repl: bool) -> str:
     zephyr_version = fetch_zephyr_version()
     renode_version = fetch_renode_version()
     binary = binary_name

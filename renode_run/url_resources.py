@@ -4,7 +4,8 @@ import tempfile
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import IO, Callable, Generator, Tuple
+from typing import IO
+from collections.abc import Callable, Generator
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, url2pathname, urlopen
@@ -14,7 +15,7 @@ class URLResourceError(Exception):
     pass
 
 @contextmanager
-def _open_url_resource(url: str, timeout: float = 30.0) -> Generator[Tuple[IO[bytes], Path | None], None, None]:
+def _open_url_resource(url: str, timeout: float = 30.0) -> Generator[tuple[IO[bytes], Path | None], None, None]:
     parsed = urlparse(url)
     local_path = None
     stream = None
@@ -96,7 +97,7 @@ def _get_total_size(stream: IO[bytes]) -> int | None:
 
     return None
 
-def download_to_file(url: str, dest_path: Path | None = None, reporthook: ReportHook | None = None) -> Tuple[Path, bool]:
+def download_to_file(url: str, dest_path: Path | None = None, reporthook: ReportHook | None = None) -> tuple[Path, bool]:
     try:
         with _open_url_resource(url) as (stream, local_file):
             if local_file and dest_path is None:

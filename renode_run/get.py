@@ -16,7 +16,7 @@ from renode_run.config_file import choose_artifacts_path, ConfigFile
 from renode_run.package import package_type, RENODE_EXECUTABLE
 
 
-def get_package_if_exists(config, target_dir_path, version, direct):
+def get_package_if_exists(config: ConfigFile, target_dir_path: Path, version: str, direct: bool):
     package_path = package_type().build_package_path(target_dir_path, version, direct)
     package_version = config.get_package_version(package_path)
     correct_version = (package_version == version)
@@ -26,13 +26,14 @@ def get_package_if_exists(config, target_dir_path, version, direct):
         return None
 
 
-def download_renode(target_dir_path, config_path, version='latest', direct=False, force=False):
+def download_renode(target_dir_path: Path, config_path: Path, version: str = 'latest', direct: bool = False, force: bool = False) -> None:
     config = ConfigFile(config_path, package_type())
 
     if force:
         if version == 'latest':
-            _, latest_version = config.get_latest_data()
-            if latest_version is not None:
+            latest_data = config.get_latest_data()
+            if latest_data is not None:
+                _, latest_version = latest_data
                 package_dir = package_type().build_package_path(target_dir_path, latest_version, direct)
                 rmtree(package_dir)
         else:
@@ -43,8 +44,9 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
                 sys.exit(f"Cannot force-install in {package_dir}\nPath occupied by non-directory object")
     else:
         if version == 'latest':
-            latest_date, latest_version = config.get_latest_data()
-            if latest_date is not None:
+            latest_data = config.get_latest_data()
+            if latest_data is not None:
+                latest_date, latest_version = latest_data
                 print(f"Renode latest version ({latest_version}) was already downloaded today ({latest_date}).\nChecking if present in the target directory...")
                 version = latest_version
 
@@ -72,7 +74,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
     config.save_config()
 
 
-def get_default_renode_path(artifacts_path=None, try_to_download=True, use_system_renode=True):
+def get_default_renode_path(artifacts_path: Path | None = None, try_to_download: bool = True, use_system_renode: bool = True) -> Path:
     artifacts_path = choose_artifacts_path(GLOBAL_ARTIFACTS_PATH, artifacts_path)
     return get_renode(
         artifacts_dir=artifacts_path,
@@ -81,7 +83,7 @@ def get_default_renode_path(artifacts_path=None, try_to_download=True, use_syste
     )
 
 
-def get_installed_renode(config):
+def get_installed_renode(config: ConfigFile) -> Path | None:
     default_version_path_str = config.get_default_path()
     if default_version_path_str is not None:
         default_version_path = Path(default_version_path_str)
@@ -94,7 +96,7 @@ def get_installed_renode(config):
             return path / RENODE_EXECUTABLE
 
 
-def get_matching_installed_renode_instances(config_file, renode_instance):
+def get_matching_installed_renode_instances(config_file: ConfigFile, renode_instance: str) -> tuple[list[Path], bool]:
     matched_exact = True
     instances = []
     instance_path = Path(renode_instance)
@@ -109,7 +111,7 @@ def get_matching_installed_renode_instances(config_file, renode_instance):
     return (instances, unambiguos_match)
 
 
-def get_renode(artifacts_dir, try_to_download=True, use_system_renode=True):
+def get_renode(artifacts_dir: Path, try_to_download: bool = True, use_system_renode: bool = True) -> Path:
     config_path = artifacts_dir / RENODE_RUN_CONFIG_FILENAME
     config = ConfigFile(config_path, package_type())
 

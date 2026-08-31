@@ -16,7 +16,7 @@ import typer
 import venv
 
 from pathlib import Path
-from typing_extensions import Annotated
+from typing import Annotated
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
@@ -33,17 +33,17 @@ from renode_run.url_resources import download_to_file, URLResourceError
 
 renode_args = []
 
-artifacts_path_annotation = Annotated[Path, typer.Option("-a", "--artifacts_path", help='path for renode-run artifacts (e.g. config, Renode installations)')]
+artifacts_path_annotation = Annotated[Path | None, typer.Option("-a", "--artifacts_path", help='path for renode-run artifacts (e.g. config, Renode installations)')]
 
 app = typer.Typer()
 
 class EnvBuilderWithRequirements(venv.EnvBuilder):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.requirements_path = kwargs.pop('requirements_path', None)
         kwargs['with_pip'] = True
         super().__init__(*args, **kwargs)
 
-    def post_setup(self, context):
+    def post_setup(self, context) -> None:
         if self.requirements_path is None:
             return
 
@@ -60,7 +60,7 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             sys.exit(err.returncode)
 
 
-def renode_run(renode_path, args=[], env=None):
+def renode_run(renode_path: Path, args: list[str] = [], env: os._Environ[str] | None = None) -> subprocess.CompletedProcess[bytes]:
     try:
         result = subprocess.run([str(renode_path)] + args, env=env)
         return result
@@ -74,10 +74,10 @@ def renode_run(renode_path, args=[], env=None):
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("download", help="download Renode portable (Linux and Windows only!)")
 def download_command(artifacts_path: artifacts_path_annotation = None,
-                     path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode download')] = None,
+                     path: Annotated[Path | None, typer.Option("-p", "--path", help='path for Renode download')] = None,
                      direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
                      force: Annotated[bool, typer.Option("-f", "--force/ ", help='download and install Renode even if it is already present')] = False,
-                     version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest'):
+                     version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest') -> None:
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     os.makedirs(artifacts_path, exist_ok=True)
@@ -93,10 +93,10 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
 @app.command("install", help="install Renode from specified source (Linux and Windows only!)")
 def install_command(source: Annotated[str, typer.Argument(help='specifies Renode package source (version, local archive or link to remote)')],
                     artifacts_path: artifacts_path_annotation = None,
-                    path: Annotated[Path, typer.Option("-p", "--path", help='path for Renode install')] = None,
+                    path: Annotated[Path | None, typer.Option("-p", "--path", help='path for Renode install')] = None,
                     direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
                     force: Annotated[bool, typer.Option("-f", "--force/ ", help='install Renode even if directory is not empty')] = False,
-                    version_override: Annotated[str, typer.Option("--version-override", help='override package version information')] = None):
+                    version_override: Annotated[str | None, typer.Option("--version-override", help='override package version information')] = None) -> None:
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     target_dir_path = path or artifacts_path / RENODE_TARGET_DIRNAME
     config_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
@@ -122,7 +122,7 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         download_command(artifacts_path, path, direct, True, source)
         return
 
-    package = package_type()(None, local_package_path, not is_local_file)
+    package = package_type()(local_package_path, not is_local_file)
 
     try:
         os.makedirs(target_dir_path, exist_ok=True)
@@ -141,8 +141,8 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
     config.save_config()
 
 @app.command("default", help="choose default Renode installation")
-def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to set as default (indicated by version or path)')] = None,
-                   artifacts_path: artifacts_path_annotation = None):
+def default_command(renode_instance: Annotated[str | None, typer.Argument(help='Renode instance to set as default (indicated by version or path)')] = None,
+                   artifacts_path: artifacts_path_annotation = None) -> None:
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
 
@@ -183,7 +183,7 @@ def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode 
 @app.command("remove", help="remove Renode installation")
 def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode instance to remove (indicated by version or path)')],
                    remove_all: Annotated[bool, typer.Option("--remove-all", help='remove all installations of the given version without a prompt', is_flag=True)] = False,
-                   artifacts_path: artifacts_path_annotation = None):
+                   artifacts_path: artifacts_path_annotation = None) -> None:
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
 
@@ -216,7 +216,7 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
 def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')],
                  binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
                  artifacts_path: artifacts_path_annotation = None,
-                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False):
+                 generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False) -> None:
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
 
@@ -248,7 +248,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("exec", help="execute Renode with arguments")
-def exec_command(artifacts_path: artifacts_path_annotation = None):
+def exec_command(artifacts_path: artifacts_path_annotation = None) -> None:
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     renode = get_renode(artifacts_path)
@@ -263,7 +263,7 @@ def exec_command(artifacts_path: artifacts_path_annotation = None):
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("test", help="execute renode-test with arguments")
 def test_command(artifacts_path: artifacts_path_annotation = None,
-                 venv_path: Annotated[Path, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None):
+                 venv_path: Annotated[Path | None, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None) -> None:
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     renode_path = get_renode(artifacts_path)
@@ -303,7 +303,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
 
 
 @app.command("list", help="list Renode installations")
-def list_command(artifacts_path: artifacts_path_annotation = None):
+def list_command(artifacts_path: artifacts_path_annotation = None) -> None:
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
 
@@ -311,7 +311,7 @@ def list_command(artifacts_path: artifacts_path_annotation = None):
 
     default_package_path = config_file.get_default_path()
 
-    (_, latest_version) = config_file.get_latest_data()
+    _, latest_version = config_file.get_latest_data() or (None, None)
 
     release_table = Table(box=None, show_edge=False)
     release_table.add_column("Package Path")
@@ -337,7 +337,7 @@ def list_command(artifacts_path: artifacts_path_annotation = None):
 # Calling renode-run without arguments runs renode from default path
 @app.callback(invoke_without_command=True)
 def parse_artifacts_path(ctx: typer.Context,
-                         artifacts_path: artifacts_path_annotation = None):
+                         artifacts_path: artifacts_path_annotation = None) -> None:
     # For backward compatibility we're allowing to pass artifacts_path before specifying the command
     global global_artifacts_path
     global_artifacts_path = artifacts_path
@@ -345,7 +345,7 @@ def parse_artifacts_path(ctx: typer.Context,
         exec_command(artifacts_path)
 
 
-def main():
+def main() -> None:
     # Cut off renode arguments after "--" and keep globally
     global renode_args
     if "--" in sys.argv:
