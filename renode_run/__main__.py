@@ -33,9 +33,15 @@ from renode_run.url_resources import download_to_file, URLResourceError
 
 renode_args = []
 
-artifacts_path_annotation = Annotated[Path | None, typer.Option("-a", "--artifacts_path", help='path for renode-run artifacts (e.g. config, Renode installations)')]
-
 app = typer.Typer()
+
+ARTIFACT_OPTIONS = ("-a", "--artifacts_path")
+PATH_OPTIONS = ("-p", "--path")
+DIRECT_OPTIONS = ("-d", "--direct")
+FORCE_OPTIONS = ("-f", "--force/ ")
+
+artifacts_path_annotation = Annotated[Path | None, typer.Option(*ARTIFACT_OPTIONS, help='path for renode-run artifacts (e.g. config, Renode installations)')]
+direct_annotation = Annotated[bool, typer.Option(*DIRECT_OPTIONS, help='do not create additional directories with Renode version')]
 
 class EnvBuilderWithRequirements(venv.EnvBuilder):
     def __init__(self, *args, **kwargs) -> None:
@@ -74,9 +80,9 @@ def renode_run(renode_path: Path, args: list[str] = [], env: os._Environ[str] | 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("download", help="download Renode portable (Linux and Windows only!)")
 def download_command(artifacts_path: artifacts_path_annotation = None,
-                     path: Annotated[Path | None, typer.Option("-p", "--path", help='path for Renode download')] = None,
-                     direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
-                     force: Annotated[bool, typer.Option("-f", "--force/ ", help='download and install Renode even if it is already present')] = False,
+                     path: Annotated[Path | None, typer.Option(*PATH_OPTIONS, help='path for Renode download')] = None,
+                     direct: direct_annotation = False,
+                     force: Annotated[bool, typer.Option(*FORCE_OPTIONS, help='download and install Renode even if it is already present')] = False,
                      version: Annotated[str, typer.Argument(help='specifies Renode version to download')] = 'latest') -> None:
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
@@ -93,9 +99,9 @@ def download_command(artifacts_path: artifacts_path_annotation = None,
 @app.command("install", help="install Renode from specified source (Linux and Windows only!)")
 def install_command(source: Annotated[str, typer.Argument(help='specifies Renode package source (version, local archive or link to remote)')],
                     artifacts_path: artifacts_path_annotation = None,
-                    path: Annotated[Path | None, typer.Option("-p", "--path", help='path for Renode install')] = None,
-                    direct: Annotated[bool, typer.Option("-d/ ", "--direct/ ", help='do not create additional directories with Renode version')] = False,
-                    force: Annotated[bool, typer.Option("-f", "--force/ ", help='install Renode even if directory is not empty')] = False,
+                    path: Annotated[Path | None, typer.Option(*PATH_OPTIONS, help='path for Renode install')] = None,
+                    direct: direct_annotation = False,
+                    force: Annotated[bool, typer.Option(*FORCE_OPTIONS, help='install Renode even if directory is not empty')] = False,
                     version_override: Annotated[str | None, typer.Option("--version-override", help='override package version information')] = None) -> None:
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
     target_dir_path = path or artifacts_path / RENODE_TARGET_DIRNAME
@@ -247,7 +253,7 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
-@app.command("exec", help="execute Renode with arguments")
+@app.command("exec", help="execute Renode with arguments (executed if no other command is specified)")
 def exec_command(artifacts_path: artifacts_path_annotation = None) -> None:
     # Option passed after the command has higher priority.
     artifacts_path = choose_artifacts_path(global_artifacts_path, artifacts_path)
