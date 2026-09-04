@@ -7,6 +7,9 @@ ELF_LINK=https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_mo
 
 RENODE_LATEST_PACKAGE_PATH="$(cache_renode_package latest)"
 
+RENODE_VERSION=1.16.1+20260302gita3bdf4a87
+RENODE_VERSION_PACKAGE_PATH="$(cache_renode_package $RENODE_VERSION)"
+
 #By default, renode-run should check if there is a renode in artifacts directory (default one here).
 #If yes then run it, else download it to artifacts directory and then run it.
 #This behaviour occurs for every command except download.
@@ -30,6 +33,42 @@ test_using_exec_command_explicitly()
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
   renode-run exec -- $PARAMS -e "q"
   assert_artifact_exists "$DEFAULT_INSTALL_PATH" "renode-*"
+}
+
+test_using_exec_with_package_path()
+{
+  renode-run install "$RENODE_LATEST_PACKAGE_PATH" --path "$TEST_DOWNLOAD_PATH" --direct
+  renode-run exec "$TEST_DOWNLOAD_PATH" -- $PARAMS -e "q"
+}
+
+test_using_exec_with_latest()
+{
+  renode-run download
+  renode-run exec latest -- $PARAMS -e "q"
+}
+
+test_using_exec_with_custom_version()
+{
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
+  renode-run exec 1.16 -- $PARAMS -e "q"
+}
+
+test_implicit_exec_with_package_path()
+{
+  renode-run install "$RENODE_LATEST_PACKAGE_PATH" --path "$TEST_DOWNLOAD_PATH" --direct
+  renode-run "$TEST_DOWNLOAD_PATH" -- $PARAMS -e "q"
+}
+
+test_implicit_exec_with_latest()
+{
+  renode-run download
+  renode-run latest -- $PARAMS -e "q"
+}
+
+test_implicit_exec_with_custom_version()
+{
+  renode-run install "$RENODE_VERSION_PACKAGE_PATH"
+  renode-run 1.16 -- $PARAMS -e "q"
 }
 
 test_running_renode-test()
@@ -73,6 +112,12 @@ test_running=(
   test_default_behaviour
   test_default_behaviour_with_custom_artifacts_path
   test_using_exec_command_explicitly
+  test_using_exec_with_package_path
+  test_using_exec_with_latest
+  test_using_exec_with_custom_version
+  test_implicit_exec_with_package_path
+  test_implicit_exec_with_latest
+  test_implicit_exec_with_custom_version
   test_running_renode-test
   test_using_custom_venv_directory
   test_running_dashboard_demo
