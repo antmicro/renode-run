@@ -97,6 +97,11 @@ def get_installed_renode(config: ConfigFile) -> Path | None:
 
 
 def get_matching_installed_renode_instances(config_file: ConfigFile, renode_instance: str) -> tuple[list[Path], bool]:
+    if renode_instance.lower() == 'latest':
+        latest_data = config_file.get_latest_data()
+        if latest_data is not None:
+            _, renode_instance = latest_data
+
     matched_exact = True
     instances = []
     instance_path = Path(renode_instance)
