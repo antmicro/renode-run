@@ -11,8 +11,8 @@ import sys
 from pathlib import Path
 from shutil import which, rmtree
 
-from renode_run.defaults import GLOBAL_ARTIFACTS_PATH, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
-from renode_run.config_file import choose_artifacts_path, ConfigFile
+from renode_run.defaults import DEFAULT_RENODE_ARTIFACTS_DIR, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
+from renode_run.config_file import ConfigFile
 from renode_run.package import package_type, RENODE_EXECUTABLE
 
 
@@ -75,7 +75,7 @@ def download_renode(target_dir_path: Path, config_path: Path, version: str = 'la
 
 
 def get_default_renode_path(artifacts_path: Path | None = None, try_to_download: bool = True, use_system_renode: bool = True) -> Path:
-    artifacts_path = choose_artifacts_path(GLOBAL_ARTIFACTS_PATH, artifacts_path)
+    artifacts_path = artifacts_path or DEFAULT_RENODE_ARTIFACTS_DIR
     return get_renode(
         artifacts_dir=artifacts_path,
         try_to_download=try_to_download,

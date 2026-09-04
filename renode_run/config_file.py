@@ -15,21 +15,11 @@ from collections.abc import Iterator
 from pathlib import Path
 from shutil import rmtree
 
-from renode_run.defaults import DEFAULT_RENODE_ARTIFACTS_DIR
-
 
 class PackageInfo(NamedTuple):
     package_path: Path
     version: str
     extra_tags: list[str]
-
-def choose_artifacts_path(lower_priority_path: Path | None, higher_priority_path: Path | None) -> Path:
-    if higher_priority_path is not None:
-        return higher_priority_path
-    if lower_priority_path is not None:
-        return lower_priority_path
-    return DEFAULT_RENODE_ARTIFACTS_DIR
-
 
 class ConfigFile:
     # Different major versions are not compatible.
