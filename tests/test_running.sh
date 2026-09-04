@@ -50,13 +50,13 @@ test_running_dashboard_demo()
 {
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
   #This is a simplified test which doesn't verify if Renode actually executes the demo.
-  renode-run demo --board "$BOARD" "$SAMPLE" -- $PARAMS -e "q"
+  renode-run demo --board "$BOARD" --binary "$SAMPLE" -- $PARAMS -e "q"
 }
 
 test_saving_repl_and_dts()
 {
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
-  renode-run demo -g --board "$BOARD" "$SAMPLE" -- $PARAMS -e "q"
+  renode-run demo -g --board "$BOARD" --binary "$SAMPLE" -- $PARAMS -e "q"
   assert_artifact_exists "$(pwd)" "$BOARD.repl"
   assert_artifact_exists "$(pwd)" "$BOARD.dts"
 }
@@ -66,7 +66,7 @@ test_running_local_elf()
   renode-run install "$RENODE_LATEST_PACKAGE_PATH"
   curl -o "$ELF_PATH" "$ELF_LINK"
   #This is a simplified test which doesn't verify if Renode actually executes the demo.
-  renode-run demo --board "$BOARD" "$ELF_PATH" -- $PARAMS -e "q"
+  renode-run demo --board "$BOARD" --binary "$ELF_PATH" -- $PARAMS -e "q"
 }
 
 test_running=(

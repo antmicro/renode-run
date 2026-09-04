@@ -16,7 +16,10 @@ import typer
 import venv
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
+from collections.abc import Callable
+from click import Command, Context
+from typer.core import TyperGroup
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
@@ -27,13 +30,20 @@ from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
 from renode_run.config_file import ConfigFile
 from renode_run.utils import PortablePackage, fetch_renode_version, fetch_zephyr_version
-from renode_run.package import RENODE_TEST, package_type
+from renode_run.package import RENODE_TEST, RENODE_EXECUTABLE, package_type
 from renode_run.prompts import RemoveInstancesPrompt
 from renode_run.url_resources import download_to_file, URLResourceError
 
 renode_args = []
 
-app = typer.Typer()
+class RenodeCommandGroup(TyperGroup):
+    def resolve_command(self, ctx: Context, args: list[str]) -> tuple[str | None, Command | None, list[str]]:
+        if args[0] not in self.commands and not args[0].startswith("-"):
+            args = ["exec", *args]
+        return super().resolve_command(ctx, args)
+
+
+app = typer.Typer(cls=RenodeCommandGroup)
 
 ARTIFACT_OPTIONS = ("-a", "--artifacts_path")
 PATH_OPTIONS = ("-p", "--path")
@@ -42,6 +52,7 @@ FORCE_OPTIONS = ("-f", "--force/ ")
 
 artifacts_path_annotation = Annotated[Path, typer.Option(*ARTIFACT_OPTIONS, help='path for renode-run artifacts (e.g. config, Renode installations)')]
 direct_annotation = Annotated[bool, typer.Option(*DIRECT_OPTIONS, help='do not create additional directories with Renode version')]
+renode_instance_annotation = Annotated[str | None, typer.Argument(help='specifies Renode package source (installed version or path)')]
 
 class EnvBuilderWithRequirements(venv.EnvBuilder):
     def __init__(self, *args, **kwargs) -> None:
@@ -75,6 +86,39 @@ def renode_run(renode_path: Path, args: list[str] = [], env: os._Environ[str] | 
                   "File '{str(renode_path)}' is missing necessary 'read and run' permissions.")
     except Exception as e:
         sys.exit(f"Failed to run Renode!\n{e}")
+
+
+def choose_renode_and_run(artifacts_path: Path, renode_instance: str | None, action: Callable[[Path], NoReturn]) -> NoReturn:
+    config_file_path = artifacts_path / RENODE_RUN_CONFIG_FILENAME
+    config_file = ConfigFile(config_file_path, package_type())
+
+    # Default behaviour is to run 'default' or download and run 'latest'
+    if not renode_instance:
+        renode = get_renode(artifacts_path)
+        sys.stdout.flush()
+
+        if renode is None:
+            sys.exit(1)
+
+        return action(renode)
+
+    (package_candidates, _) = get_matching_installed_renode_instances(config_file, renode_instance)
+
+    if len(package_candidates) == 1:
+        renode_executable = package_candidates[0] / RENODE_EXECUTABLE
+        print(f"Using Renode installed in: {renode_executable}.", file=sys.stderr)
+        return action(renode_executable)
+    elif package_candidates != []:
+        print("Renode version is ambiguous! Please provide full path or version.")
+        print(f"The following versions matched '{renode_instance}':")
+        for instance in package_candidates:
+            print(f"- {instance}")
+
+        sys.exit(1)
+    else:
+        print(f"Could not find installed packages accessible via '{renode_instance}'.")
+        print("To list available Renode packages use the 'list' command.")
+        sys.exit(1)
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
@@ -215,7 +259,8 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("demo", help="run a demo from precompiled binaries")
 def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board name, as listed on https://zephyr-dashboard.renode.io')],
-                 binary: Annotated[str, typer.Argument(help='binary name, either local or remote')],
+                 binary: Annotated[str, typer.Option("-e", "--binary", help='binary name, either local or remote')],
+                 renode_instance: renode_instance_annotation = None,
                  artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTIFACTS_DIR,
                  generate_repl: Annotated[bool, typer.Option("-g/ ", "--generate-repl/ ", help='whether to generate the repl from dts')] = False) -> None:
     zephyr_version = fetch_zephyr_version()
@@ -229,71 +274,70 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
                  f'Available platforms:{chr(10)}{chr(10).join(boards)}\n'
                   'Choose one of the platforms listed above and try again.')
 
-    renode_path = get_renode(artifacts_path)
+    def run_demo(executable_path: Path) -> NoReturn:
+        script = generate_script(binary, board, generate_repl)
 
-    if renode_path is None:
-        sys.exit(1)
+        with tempfile.NamedTemporaryFile(delete=False) as temp:
+            temp.write(script.encode("utf-8"))
+            temp.flush()
+            temp.close()
+            ret = renode_run(executable_path, [temp.name] + renode_args)
+        sys.exit(ret.returncode)
 
-    script = generate_script(binary, board, generate_repl)
-
-    with tempfile.NamedTemporaryFile(delete=False) as temp:
-        temp.write(script.encode("utf-8"))
-        temp.flush()
-        temp.close()
-        ret = renode_run(renode_path, [temp.name] + renode_args)
-    sys.exit(ret.returncode)
+    choose_renode_and_run(artifacts_path, renode_instance, run_demo)
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("exec", help="execute Renode with arguments (executed if no other command is specified)")
-def exec_command(artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTIFACTS_DIR) -> None:
-    renode = get_renode(artifacts_path)
-    if renode is None:
-        sys.exit(1)
+def exec_command(renode_instance: renode_instance_annotation = None,
+                 artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTIFACTS_DIR) -> None:
 
-    sys.stdout.flush()
-    ret = renode_run(renode, renode_args)
-    sys.exit(ret.returncode)
+    def exec_renode(executable_path: Path) -> NoReturn:
+        ret = renode_run(executable_path, renode_args)
+        sys.exit(ret.returncode)
+
+    choose_renode_and_run(artifacts_path, renode_instance, exec_renode)
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
 @app.command("test", help="execute renode-test with arguments")
-def test_command(artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTIFACTS_DIR,
+def test_command(renode_instance: renode_instance_annotation = None,
+                 artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTIFACTS_DIR,
                  venv_path: Annotated[Path | None, typer.Option("--venv", help='path for virtualenv used by renode-test')] = None) -> None:
-    renode_path = get_renode(artifacts_path)
-    if renode_path is None:
-        sys.exit(1)
 
-    renode_dir = renode_path.parent
-    renode_test = renode_dir / RENODE_TEST
-    if not Path.exists(renode_test):
-        print(f'Found Renode binary in {renode_dir}, but {RENODE_TEST} is missing; trying test.sh')
-        renode_test = renode_dir / 'test.sh'
+    def run_test(executable_path: Path) -> NoReturn:
+        renode_dir = executable_path.parent
+        renode_test = renode_dir / RENODE_TEST
 
         if not Path.exists(renode_test):
-            sys.exit('test.sh does not exist; corrupted package?')
+            print(f'Found Renode binary in {renode_dir}, but {RENODE_TEST} is missing; trying test.sh')
+            renode_test = renode_dir / 'test.sh'
 
-        print('test.sh script found, using it instead of renode-test')
+            if not Path.exists(renode_test):
+                sys.exit('test.sh does not exist, the package might be corrupted')
 
-    if venv_path is None:
-        venv_path = artifacts_path / RENODE_TEST_VENV_DIRNAME
+            print('test.sh script found, using it instead of renode-test')
 
-    python_executable = get_venv_executable(venv_path)
-    python_dir = python_executable.parent
-    if not Path.exists(python_executable):
-        print(f'Bootstrapping new virtual env in {venv_path}')
-        requirements_path = renode_dir / 'tests' / 'requirements.txt'
-        env_builder = EnvBuilderWithRequirements(clear=True, requirements_path=requirements_path)
-        env_builder.create(venv_path)
-    else:
-        print(f'Found python in {python_dir}')
+        test_venv_path = venv_path or artifacts_path / RENODE_TEST_VENV_DIRNAME
 
-    env = os.environ
-    env['PATH'] = get_path_sep().join((str(python_dir), env['PATH']))
-    env["VIRTUAL_ENV"] = str(venv_path)
+        python_executable = get_venv_executable(test_venv_path)
+        python_dir = python_executable.parent
+        if not Path.exists(python_executable):
+            print(f'Bootstrapping new virtual env in {test_venv_path}')
+            requirements_path = renode_dir / 'tests' / 'requirements.txt'
+            env_builder = EnvBuilderWithRequirements(clear=True, requirements_path=requirements_path)
+            env_builder.create(test_venv_path)
+        else:
+            print(f'Found python in {python_dir}')
 
-    ret = renode_run(renode_test, renode_args, env)
-    sys.exit(ret.returncode)
+        env = os.environ
+        env['PATH'] = get_path_sep().join((str(python_dir), env['PATH']))
+        env["VIRTUAL_ENV"] = str(test_venv_path)
+
+        ret = renode_run(renode_test, renode_args, env)
+        sys.exit(ret.returncode)
+
+    choose_renode_and_run(artifacts_path, renode_instance, run_test)
 
 
 @app.command("list", help="list Renode installations")
@@ -327,7 +371,6 @@ def list_command(artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTI
     console.print(release_table)
 
 
-# Calling renode-run without arguments runs renode from default path
 @app.callback(invoke_without_command=True)
 def parse_artifacts_path(ctx: typer.Context,
                          artifacts_path: artifacts_path_annotation = DEFAULT_RENODE_ARTIFACTS_DIR) -> None:
@@ -344,6 +387,7 @@ def main() -> None:
         index = sys.argv.index("--")
         renode_args = sys.argv[index+1:]
         sys.argv = sys.argv[:index]
+
     app()
 
 
