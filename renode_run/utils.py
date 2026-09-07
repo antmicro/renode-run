@@ -118,15 +118,15 @@ class PortablePackage(ABC):
             renode_version = version_override
 
             if renode_version is None:
-                # This regex searches for "<semver>+<date>git<commit>".
+                # This regex searches "<semver>" and "<semver>+<date>git<commit>" version formats
                 # - semver -- Semantic version (e.g. 0.0.0)
                 # - data -- format YYYYMMDD
                 # - commit -- consists of 8-9 first characters of commit SHA
-                matched = re.search(r"[0-9]+\.[0-9]+\.[0-9]+\+[0-9]{8}git[0-9a-fA-F]{8,9}", name)
+                matched = re.search(r"renode[-_](?P<version>[0-9]+\.[0-9]+\.[0-9]+(?:\+[0-9]{8}git[0-9a-fA-F]{8,9})?)", name)
                 if not matched:
                     raise self.UnableToFindVersion(f"Can't find proper renode version string in {name}")
 
-                renode_version = matched.group(0)
+                renode_version = matched.group("version")
 
             final_path = self.build_package_path(target_dir_path, renode_version, direct)
             is_dir_dirty = final_path.exists() and len(os.listdir(final_path)) != 0
