@@ -14,6 +14,11 @@
   script:
     - python3 -V
     - python3 -m venv .venv && source .venv/bin/activate
+
+    - git clone --single-branch --branch=main $(git remote get-url origin | sed "s/renode-run/dts2repl/") ./dts2repl ||
+      git clone --single-branch --branch=main $(git remote get-url origin | sed "s/renode-run/renode-dts2repl/") ./dts2repl
+    - sed -i "s|git+https://github.com/antmicro/dts2repl@main#egg=dts2repl|file://$(pwd)/dts2repl|g" pyproject.toml
+
     - pip3 install .
     - ./tests/test.sh
 
