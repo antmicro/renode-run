@@ -300,7 +300,13 @@ class ConfigFile:
         if not self.portable_package.path_contains_renode(path):
             return
         
-        rmtree(path)
+        try:
+            rmtree(path)
+        except PermissionError:
+            print("Administrative privilages are necessary to delete this installation.")
+            print("Please run the application with admin privilages and try again.")
+            exit(1)
+
         self.get_renode_installs().pop(str(path))
         self._check_default()
         print(f"Removed package from: {path}")
