@@ -134,13 +134,16 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         return
 
     package = package_type()(None, local_package_path, not is_local_file)
-
-    os.makedirs(target_dir_path, exist_ok=True)
     
     try:
+        os.makedirs(target_dir_path, exist_ok=True)
         (final_path, version_str) = package.extract(target_dir_path, direct, force, version_override)
     except package_type().UnableToFindVersion:
         print("Package does not contain version information. Please provide the version name using '--version-override' option")
+        sys.exit(1)
+    except PermissionError:
+        print(f"Not authorized to intall Renode package in {target_dir_path}.")
+        print(f"Please choose a different directory or run renode-run with elevated privilages.")
         sys.exit(1)
     except:
         print("Unable to extract package. Please make sure the provided source contains a Renode portable package for Your platform")
