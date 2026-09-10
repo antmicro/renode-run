@@ -180,7 +180,13 @@ class ConfigFile:
         should_save = False
 
         if config_path.exists():
-            config = json.loads(config_path.read_text())
+            try:
+                config = json.loads(config_path.read_text())
+            except json.JSONDecodeError:
+                print(f"Configuration file located at '{config_path}' is malformed!", file=sys.stderr)
+                print(f"Please ensure correct formatting or delete the file.", file=sys.stderr)
+                exit(1)
+
             config_version = config.get(self.RENODE_RUN_CONFIG_VERSION, None)
             if config_version is None:
                 print(f"Renode-run config does not contain version information.")
