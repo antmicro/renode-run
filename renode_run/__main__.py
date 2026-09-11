@@ -25,8 +25,8 @@ from urllib import request, error, parse
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable, get_path_sep
 from renode_run.generate import generate_script
 from renode_run.get import download_renode, get_renode, get_matching_installed_renode_instances
-from renode_run.utils import ConfigFile, PortablePackage, PackageInfo
-from renode_run.utils import choose_artifacts_path, fetch_renode_version, fetch_zephyr_version
+from renode_run.config_file import ConfigFile, choose_artifacts_path
+from renode_run.utils import PortablePackage, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST, package_type
 from renode_run.prompts import RemoveInstancesPrompt
 

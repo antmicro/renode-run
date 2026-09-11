@@ -11,7 +11,7 @@ from pathlib import Path
 from shutil import which, rmtree
 
 from renode_run.defaults import GLOBAL_ARTIFACTS_PATH, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME
-from renode_run.utils import choose_artifacts_path, ConfigFile
+from renode_run.config_file import choose_artifacts_path, ConfigFile
 from renode_run.package import package_type, RENODE_EXECUTABLE
 
 
