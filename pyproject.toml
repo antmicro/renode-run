@@ -28,8 +28,26 @@ classifiers = [
     'Topic :: Utilities',
 ]
 
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+]
+
 [project.scripts]
 renode-run = 'renode_run.__main__:main'
 
 [tool.setuptools]
 packages = ["renode_run"]
+
+[tool.ruff]
+src = ["renode_run"]
+
+[tool.ruff.lint]
+select = [
+    # Trailing whitespace
+    "W291",
+    # No newline at end of file
+    "W292", 
+    # Blank line contains whitespace
+    "W293",
+]
