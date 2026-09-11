@@ -126,7 +126,7 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         return
 
     package = package_type()(None, local_package_path, not is_local_file)
-    
+
     try:
         os.makedirs(target_dir_path, exist_ok=True)
         (final_path, version_str) = package.extract(target_dir_path, direct, force, version_override)

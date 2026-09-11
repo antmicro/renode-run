@@ -24,7 +24,7 @@ class ZipArchive(PortableArchive):
 
     def get_root_dir_name(self):
         return self.ar.namelist()[0]
-    
+
     @staticmethod
     def remove_parent_directory(tar_file):
         # Path cannot be used as it automatically canonicalizes paths,

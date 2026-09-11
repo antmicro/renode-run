@@ -26,7 +26,7 @@ class PortableArchive(ABC):
     @abstractmethod
     def __init__(self, ar_path):
         pass
-    
+
     @abstractmethod
     def close(self):
         pass
@@ -34,7 +34,7 @@ class PortableArchive(ABC):
     @abstractmethod
     def get_root_dir_name(self):
         pass
-    
+
     @abstractmethod
     def extract_members(self, final_path):
         pass

@@ -72,9 +72,9 @@ class RemoveInstancesPrompt(PromptBase):
 
         except(ValueError) as e:
             raise InvalidResponse(f"Invalid selection format: {e}. Please enter numbers or ranges (e.g. 1 3-5)")
-        
+
         if excluded_indices:
             selected_indices = excluded_indices.symmetric_difference(range(1, max_val + 1))
-                    
+
         return sorted(list(selected_indices))
 

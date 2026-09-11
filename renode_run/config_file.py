@@ -163,7 +163,7 @@ class ConfigFile:
 
     def get_default_path(self):
         return self.config.get(self.DEFAULT_VERSION, None)
-    
+
     def update_default(self, path):
         self.config[self.DEFAULT_VERSION] = str(path)
 
@@ -183,7 +183,7 @@ class ConfigFile:
     def remove_installation(self, path):
         if not self.portable_package.path_contains_renode(path):
             return
-        
+
         try:
             rmtree(path)
         except PermissionError:
