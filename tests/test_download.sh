@@ -35,6 +35,13 @@ test_downloading_selected_renode_version()
   fi
 }
 
+test_downloading_selected_renode_release()
+{
+    local RENODE_RELEASE=1.17.0
+    renode-run download $RENODE_RELEASE
+    assert_artifact_exists "$DEFAULT_INSTALL_PATH/renode-$RENODE_RELEASE" "renode"
+}
+
 test_downloading_without_creating_directories_for_versions()
 {
   renode-run download -d
@@ -203,6 +210,7 @@ test_download=(
   test_downloading_to_selected_location
   test_downloading_to_selected_location_directly
   test_downloading_selected_renode_version
+  test_downloading_selected_renode_release
   test_downloading_without_creating_directories_for_versions
   test_downloading_present_renode_version
   test_downloading_present_renode_version_in_custom_location
