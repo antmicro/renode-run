@@ -5,7 +5,6 @@
     - $CI_PIPELINE_SOURCE == "merge_request"
 
 .common-linux: &common_linux
-  tags: ['ace-x86_64']
   variables:
     DEBIAN_FRONTEND: "noninteractive"
   before_script:
