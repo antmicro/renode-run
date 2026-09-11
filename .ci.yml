@@ -6,7 +6,11 @@
 
 .common-linux: &common_linux
   variables:
+    SCALENODE_CPU: 2
+    SCALENODE_DISK: 20
     DEBIAN_FRONTEND: "noninteractive"
+
+.common-test: &common_test
   before_script:
     - apt -qqy update > /dev/null
     - apt -qqy install curl git python3 python3-pip python3-venv libicu-dev > /dev/null
@@ -24,14 +28,17 @@
 Debian Bookworm (python3.11):
   <<: *only_master_and_all_mrs
   <<: *common_linux
+  <<: *common_test
   image: debian:bookworm
 
 Debian Trixie (python3.13):
   <<: *only_master_and_all_mrs
   <<: *common_linux
+  <<: *common_test
   image: debian:trixie
 
 Ubuntu 25.04 (python3.13):
   <<: *only_master_and_all_mrs
   <<: *common_linux
+  <<: *common_test
   image: ubuntu:25.04
