@@ -20,7 +20,7 @@ from typing_extensions import Annotated
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
-from urllib import request, error, parse
+from urllib import parse
 
 from renode_run.defaults import DASHBOARD_LINK, RENODE_TEST_VENV_DIRNAME, RENODE_RUN_CONFIG_FILENAME, RENODE_TARGET_DIRNAME, get_venv_executable, get_path_sep
 from renode_run.generate import generate_script
@@ -29,6 +29,7 @@ from renode_run.config_file import ConfigFile, choose_artifacts_path
 from renode_run.utils import PortablePackage, fetch_renode_version, fetch_zephyr_version
 from renode_run.package import RENODE_TEST, package_type
 from renode_run.prompts import RemoveInstancesPrompt
+from renode_run.url_resources import download_to_file, URLResourceError
 
 renode_args = []
 
@@ -110,23 +111,14 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         local_package_path = Path(source)
         print("Installing from local package...")
     elif url.scheme:
-        print("Downloading package from remote...")
-
-        # Do not auto-remove local resources, as urlretrieve doesn't copy local files.
-        is_localhost = url.hostname == "localhost" or url.hostname is None
-        is_local_file = url.scheme == "file" and is_localhost
+        print("Downloading package from URL...")
 
         try:
-            renode_package, _ = request.urlretrieve(source, reporthook=PortablePackage._report_progress())
-        except error.HTTPError:
-            print("Package could not be downloaded. Check if you have working internet connection and provided link is correct")
-            sys.exit(1)
+            (local_package_path, is_local_file) = download_to_file(source, reporthook=PortablePackage._report_progress())
+        except URLResourceError as e:
+            print(f"Package could not be downloaded. Check if you have working internet connection and provided link is correct.\n{e}")
+            exit(1)
 
-        if os.name == 'nt' and url.scheme == "file":
-            # On Windows request.urlretrieve returns a malformed path for 'file' URI scheme.
-            renode_package = request.url2pathname(url.path)
-
-        local_package_path = Path(renode_package)
         print("Downloaded package to:", local_package_path)
     else:
         print("Interpreting source as Renode version string")

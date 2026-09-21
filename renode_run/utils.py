@@ -15,9 +15,9 @@ import time
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from urllib import request, error
 
 from renode_run.defaults import DASHBOARD_LINK
+from renode_run.url_resources import download_to_file, fetch_text, URLResourceError
 
 DOWNLOAD_PROGRESS_DELAY = 1
 
@@ -103,10 +103,10 @@ class PortablePackage(ABC):
         package_name = self.get_package_name(version)
 
         try:
-            renode_package, _ = request.urlretrieve(f"https://builds.renode.io/{package_name}", reporthook=self._report_progress())
-        except error.HTTPError:
-            print("Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified)")
-            sys.exit(1)
+            (renode_package, _) = download_to_file(f"https://builds.renode.io/{package_name}", reporthook=self._report_progress())
+        except URLResourceError as e:
+            print(f"Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified).\n{e}")
+            exit(1)
 
         return renode_package
 
@@ -147,11 +147,15 @@ class PortablePackage(ABC):
 
 @functools.lru_cache
 def fetch_zephyr_version():
-    version = requests.get(f"{DASHBOARD_LINK}/zephyr_sim/latest")
-    return version.text.strip()
+    try:
+        return fetch_text(f"{DASHBOARD_LINK}/zephyr_sim/latest").strip()
+    except URLResourceError as e:
+        print(f"Filed to fetch Zephyr Dashboard metadata. Please verify your connection and try again.\n{e}")
 
 
 @functools.lru_cache
 def fetch_renode_version():
-    version = requests.get(f"{DASHBOARD_LINK}/zephyr_sim/{fetch_zephyr_version()}/latest")
-    return version.text.strip()
+    try:
+        return fetch_text(f"{DASHBOARD_LINK}/zephyr_sim/{fetch_zephyr_version()}/latest").strip()
+    except URLResourceError as e:
+        print(f"Filed to fetch Zephyr Dashboard metadata. Please verify your connection and try again.\n{e}")

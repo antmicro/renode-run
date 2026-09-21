@@ -7,14 +7,13 @@
 
 import os
 import sys
-import requests
-import urllib.request
 
 from pathlib import Path
 from dts2repl import dts2repl
 
 from renode_run.defaults import DASHBOARD_LINK
 from renode_run.utils import fetch_renode_version, fetch_zephyr_version
+from renode_run.url_resources import fetch_text, download_to_file, URLResourceError
 
 
 script_prepend = '''# renode-run prepend
@@ -42,18 +41,26 @@ def generate_script(binary_name, platform, generate_repl):
         binary_name = 'hello_world'
 
     if generate_repl:
-        urllib.request.urlretrieve(f"{DASHBOARD_LINK}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts", platform + ".dts")
+        dts = f"{DASHBOARD_LINK}/zephyr/{zephyr_version}/{platform}/{binary_name}/{binary_name}.dts"
+        try:
+            download_to_file(dts, Path(platform + ".dts"))
+        except URLResourceError as e:
+            print(f"Failed to fetch platform Device Tree:\n{e}", file=sys.stderr)
+            exit(1)
+
+
         with open(platform + ".repl", 'w') as repl_file:
             repl_file.write(dts2repl.generate(Path.cwd() / f"{platform}.dts"))
         repl = platform + ".repl"
     else:
         repl = f"{DASHBOARD_LINK}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.repl"
 
-    resc_resp = requests.get(f"{DASHBOARD_LINK}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.resc")
-    if resc_resp.status_code == 200:
-        dash_script = resc_resp.content.decode("UTF-8")
-    else:
-        print(f"Error: Unable to retrieve the Renode script for sample '{binary_name}'.", file=sys.stderr)
+    resc = f"{DASHBOARD_LINK}/zephyr_sim/{zephyr_version}/{renode_version}/{platform}/{binary_name}/{binary_name}.resc"
+    dash_script = None
+    try:
+        dash_script = fetch_text(resc)
+    except URLResourceError as e:
+        print(f"Failed to fetch Zephyr Dashboard script:\n{e}", file=sys.stderr)
         exit(1)
 
     script = f"{script_prepend.format(binary=binary, repl=repl)}{dash_script}{script_append}"
