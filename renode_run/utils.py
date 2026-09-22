@@ -72,7 +72,16 @@ class PortablePackage(ABC):
             current = min(current, total)
 
             time_elapsed = datetime.timedelta(seconds=current_time - start_time)
-            print(f"Downloaded {current:.2f}MB / {total:.2f}MB (time elapsed: {time_elapsed})...", end='\r')
+            total_seconds = time_elapsed.total_seconds()
+            mins, secs = divmod(total_seconds, 60)
+            hours, mins = divmod(mins, 60)
+
+            if hours:
+                elapsed_time_str = f"{int(hours):02}:{int(mins):02}:{secs:05.2f}"
+            else:
+                elapsed_time_str = f"{int(mins):02}:{secs:05.2f}"
+
+            print(f"Downloaded {current:.2f}MB / {total:.2f}MB (time elapsed: {elapsed_time_str})...", end='\r')
         return aux
 
     @staticmethod
