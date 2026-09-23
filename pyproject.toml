@@ -50,4 +50,6 @@ select = [
     "W292", 
     # Blank line contains whitespace
     "W293",
+    # Assert modern type annotations
+    "UP",
 ]
