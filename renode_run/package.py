@@ -24,7 +24,7 @@ elif sys.platform == 'win32':
 
 elif sys.platform == 'darwin':
     # MacOS executable names are compatible with the Linux ones.
-    from renode_run.linux_package import RENODE_EXECUTABLE, RENODE_TEST
+    from renode_run.linux_package import RENODE_EXECUTABLE, RENODE_TEST # noqa: F401 # Re-exported variables for 'test' and 'exec' commands
 
     def package_type() -> NoReturn:
         raise Exception("Package management is not supported on MacOS")

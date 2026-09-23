@@ -9,7 +9,6 @@ import datetime
 import functools
 import re
 import os
-import requests
 import sys
 import time
 
