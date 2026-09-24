@@ -45,8 +45,7 @@ def generate_script(binary_name, platform, generate_repl):
         try:
             download_to_file(dts, Path(platform + ".dts"))
         except URLResourceError as e:
-            print(f"Failed to fetch platform Device Tree:\n{e}", file=sys.stderr)
-            exit(1)
+            sys.exit(f"Failed to fetch platform Device Tree:\n{e}")
 
 
         with open(platform + ".repl", 'w') as repl_file:
@@ -60,8 +59,7 @@ def generate_script(binary_name, platform, generate_repl):
     try:
         dash_script = fetch_text(resc)
     except URLResourceError as e:
-        print(f"Failed to fetch Zephyr Dashboard script:\n{e}", file=sys.stderr)
-        exit(1)
+        sys.exit(f"Failed to fetch Zephyr Dashboard script:\n{e}")
 
     script = f"{script_prepend.format(binary=binary, repl=repl)}{dash_script}{script_append}"
 

@@ -61,22 +61,19 @@ class ConfigFile:
             try:
                 config = json.loads(config_path.read_text())
             except json.JSONDecodeError:
-                print(f"Configuration file located at '{config_path}' is malformed!", file=sys.stderr)
-                print(f"Please ensure correct formatting or delete the file.", file=sys.stderr)
-                exit(1)
+                sys.exit(f"Configuration file located at '{config_path}' is malformed!\n"
+                         f"Please ensure correct formatting or delete the file.")
 
             config_version = config.get(self.RENODE_RUN_CONFIG_VERSION, None)
             if config_version is None:
-                print(f"Renode-run config does not contain version information.")
-                print(f"Please clear the config file located at '{self.config_path}' or revert to an older renode-run version.")
-                exit(1)
+                sys.exit(f"Renode-run config does not contain version information.\n"
+                         f"Please clear the config file located at '{self.config_path}' or revert to an older renode-run version.")
 
             (major, minor) = self.expand_version(self.CONFIG_VERSION)
             (config_major, config_minor) = self.expand_version(config_version)
             if config_major != major or config_minor > minor:
-                print(f"Renode-run config version ({config_version}) is not compatible with this renode-run ({self.CONFIG_VERSION}).")
-                print(f"Please clear the config file located at '{self.config_path}' or change renode-run version.")
-                exit(1)
+                sys.exit(f"Renode-run config version ({config_version}) is not compatible with this renode-run ({self.CONFIG_VERSION}).\n"
+                         f"Please clear the config file located at '{self.config_path}' or change renode-run version.")
 
             package_defaults = config[self.DEFAULT_VERSION]
 
@@ -187,9 +184,8 @@ class ConfigFile:
         try:
             rmtree(path)
         except PermissionError:
-            print("Administrative privilages are necessary to delete this installation.")
-            print("Please run the application with admin privilages and try again.")
-            exit(1)
+            sys.exit("Administrative privilages are necessary to delete this installation.\n"
+                     "Please run the application with admin privilages and try again.")
 
         self.get_renode_installs().pop(str(path))
         self._check_default()

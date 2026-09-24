@@ -105,8 +105,7 @@ class PortablePackage(ABC):
         try:
             (renode_package, _) = download_to_file(f"https://builds.renode.io/{package_name}", reporthook=self._report_progress())
         except URLResourceError as e:
-            print(f"Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified).\n{e}")
-            exit(1)
+            sys.exit(f"Renode could not be downloaded. Check if you have working internet connection and provided Renode version is correct (if specified).\n{e}")
 
         return renode_package
 
@@ -137,9 +136,8 @@ class PortablePackage(ABC):
             final_path = self.build_package_path(target_dir_path, renode_version, direct)
             is_dir_dirty = final_path.exists() and len(os.listdir(final_path)) != 0
             if is_dir_dirty and not force:
-                print(f"Target directory '{target_dir_path}' is not empty!", file=sys.stderr)
-                print("Please clear the directory or use a '--force' option.", file=sys.stderr)
-                exit(1)
+                sys.exit(f"Target directory '{target_dir_path}' is not empty!\n"
+                          "Please clear the directory or use a '--force' option.")
 
             ar.extract_members(final_path)
             return (final_path, renode_version)
@@ -150,7 +148,7 @@ def fetch_zephyr_version():
     try:
         return fetch_text(f"{DASHBOARD_LINK}/zephyr_sim/latest").strip()
     except URLResourceError as e:
-        print(f"Filed to fetch Zephyr Dashboard metadata. Please verify your connection and try again.\n{e}")
+        sys.exit(f"Failed to fetch Zephyr Dashboard metadata. Please verify your connection and try again.\n{e}")
 
 
 @functools.lru_cache
@@ -158,4 +156,4 @@ def fetch_renode_version():
     try:
         return fetch_text(f"{DASHBOARD_LINK}/zephyr_sim/{fetch_zephyr_version()}/latest").strip()
     except URLResourceError as e:
-        print(f"Filed to fetch Zephyr Dashboard metadata. Please verify your connection and try again.\n{e}")
+        sys.exit(f"Failed to fetch Zephyr Dashboard metadata. Please verify your connection and try again.\n{e}")

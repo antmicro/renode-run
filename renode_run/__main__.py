@@ -57,7 +57,7 @@ class EnvBuilderWithRequirements(venv.EnvBuilder):
             print(f'Could not install given requirements: {err}')
             print('Requirements have to be installed manually, or the environment has to be deleted before running command again')
             print(f'Environment path: {context.env_dir}')
-            exit(err.returncode)
+            sys.exit(err.returncode)
 
 
 def renode_run(renode_path, args=[], env=None):
@@ -65,12 +65,10 @@ def renode_run(renode_path, args=[], env=None):
         result = subprocess.run([str(renode_path)] + args, env=env)
         return result
     except PermissionError:
-        print("Failed to run Renode!", file=sys.stderr)
-        print(f"File '{str(renode_path)}' is missing necessary 'read and run' permisions.", file=sys.stderr)
-        exit(1)
+        sys.exit(f"Failed to run Renode!\n"
+                  "File '{str(renode_path)}' is missing necessary 'read and run' permisions.")
     except Exception as e:
-        print(f"Failed to run Renode!\n{e}", file=sys.stderr)
-        exit(1)
+        sys.exit(f"Failed to run Renode!\n{e}")
 
 
 # For backward compatibility artifacts_path option can be passed both before and after specifying the command.
@@ -116,8 +114,7 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         try:
             (local_package_path, is_local_file) = download_to_file(source, reporthook=PortablePackage._report_progress())
         except URLResourceError as e:
-            print(f"Package could not be downloaded. Check if you have working internet connection and provided link is correct.\n{e}")
-            exit(1)
+            sys.exit(f"Package could not be downloaded. Check if you have working internet connection and provided link is correct.\n{e}")
 
         print("Downloaded package to:", local_package_path)
     else:
@@ -131,15 +128,12 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
         os.makedirs(target_dir_path, exist_ok=True)
         (final_path, version_str) = package.extract(target_dir_path, direct, force, version_override)
     except package_type().UnableToFindVersion:
-        print("Package does not contain version information. Please provide the version name using '--version-override' option")
-        sys.exit(1)
+        sys.exit("Package does not contain version information. Please provide the version name using '--version-override' option")
     except PermissionError:
-        print(f"Not authorized to intall Renode package in {target_dir_path}.")
-        print(f"Please choose a different directory or run renode-run with elevated privilages.")
-        sys.exit(1)
+        sys.exit(f"Not authorized to intall Renode package in {target_dir_path}.\n"
+                 f"Please choose a different directory or run renode-run with elevated privilages.")
     except:
-        print("Unable to extract package. Please make sure the provided source contains a Renode portable package for Your platform")
-        sys.exit(1)
+        sys.exit("Unable to extract package. Please make sure the provided source contains a Renode portable package for Your platform")
 
     print(f"Installed Renode({version_str}) to {final_path}")
 
@@ -157,8 +151,7 @@ def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode 
     if renode_instance is None:
         default_path_str = config_file.get_default_path()
         if default_path_str is None:
-            print(f"No default Renode version set!")
-            exit(1)
+            sys.exit(f"No default Renode version set!")
         else:
             print(default_path_str)
 
@@ -167,8 +160,7 @@ def default_command(renode_instance: Annotated[str, typer.Argument(help='Renode 
     (default_candidates, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_instance)
 
     if not default_candidates:
-        print(f"No package identifiable by '{renode_instance}' are installed, exiting")
-        return
+        sys.exit(f"No package identifiable by '{renode_instance}' are installed, exiting")
 
     package_id = 1
     if not unambiguos_match:
@@ -200,8 +192,7 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
     (packages_to_remove, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_instance)
 
     if not packages_to_remove:
-        print(f"No package with version '{renode_instance}' installed, exiting")
-        return
+        sys.exit(f"No package with version '{renode_instance}' installed, exiting")
 
     if unambiguos_match or remove_all:
         for package_path in packages_to_remove:
@@ -236,10 +227,9 @@ def demo_command(board: Annotated[str, typer.Option("-b", "--board", help='board
     boards = [r["platform"] for r in results]
 
     if board not in boards:
-        print(f'Platform "{board}" not in Zephyr platforms list on server.')
-        print(f'Available platforms:{chr(10)}{chr(10).join(boards)}')
-        print('Choose one of the platforms listed above and try again.')
-        sys.exit(1)
+        sys.exit(f'Platform "{board}" not in Zephyr platforms list on server.\n'
+                 f'Available platforms:{chr(10)}{chr(10).join(boards)}\n'
+                  'Choose one of the platforms listed above and try again.')
 
     renode_path = get_renode(artifacts_path)
 
@@ -287,8 +277,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
         renode_test = renode_dir / 'test.sh'
 
         if not Path.exists(renode_test):
-            print('test.sh does not exist; corrupted package?')
-            sys.exit(1)
+            sys.exit('test.sh does not exist; corrupted package?')
 
         print('test.sh script found, using it instead of renode-test')
 

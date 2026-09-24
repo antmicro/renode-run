@@ -6,6 +6,7 @@
 #
 
 import os
+import sys
 
 from pathlib import Path
 from shutil import which, rmtree
@@ -39,8 +40,7 @@ def download_renode(target_dir_path, config_path, version='latest', direct=False
             if Path(package_dir).is_dir():
                 rmtree(package_dir)
             elif Path(package_dir).exists():
-                print(f"Cannot force-install in {package_dir}\nPath occupied by non-directory object")
-                exit(1)
+                sys.exit(f"Cannot force-install in {package_dir}\nPath occupied by non-directory object")
     else:
         if version == 'latest':
             latest_date, latest_version = config.get_latest_data()
