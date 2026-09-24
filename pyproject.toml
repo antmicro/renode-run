@@ -54,4 +54,16 @@ select = [
     "F401",
     # Assert modern type annotations
     "UP",
+    # Name shadowing
+    "A",
+    # Unused Arguments
+    "ARG",
+    # Unnecessary constructors
+    "PIE",
+    # Avoidable performance costs
+    "PERF",
+    # Unused noqa comments
+    "RUF100",
+    # pycodestyle
+    "E1", "E4", "F6", "F7", "F8"
 ]
