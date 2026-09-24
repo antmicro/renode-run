@@ -26,12 +26,12 @@ class ZipArchive(PortableArchive):
         return self.ar.namelist()[0]
 
     @staticmethod
-    def remove_parent_directory(tar_file):
+    def remove_parent_directory(zip_file):
         # Path cannot be used as it automatically canonicalizes paths,
         # but Zipfile requires directories to have a slash at the end.
-        parts = tar_file.filename.split('/', 1)
+        parts = zip_file.filename.split('/', 1)
         if len(parts) > 1 and parts[1]:
-            tar_file.filename = parts[1]
+            zip_file.filename = parts[1]
             return True
         return False
 
