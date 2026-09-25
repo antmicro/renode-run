@@ -5,6 +5,15 @@ on:
     - cron: '0 23 * * *' # run daily at 23:00 (UTC)
 
 jobs:
+  ruff-lints:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: "check"
+  
   test-linux:
     runs-on: ubuntu-22.04
     steps:
