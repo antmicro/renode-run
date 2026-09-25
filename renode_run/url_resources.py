@@ -28,7 +28,7 @@ def _open_url_resource(url: str, timeout: float = 30.0) -> Generator[tuple[IO[by
         elif parsed.scheme in ('http', 'https'):
             req = Request(url)
             stream = urlopen(req, timeout=timeout)
-
+  
         else:
             raise URLResourceError(f"Unsupported URI protocol '{parsed.scheme}://'")
 

@@ -7,6 +7,7 @@
 
 import os
 import sys
+import requests
 
 from pathlib import Path
 from shutil import which, rmtree

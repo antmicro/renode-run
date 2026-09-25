@@ -15,6 +15,7 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from collections.abc import Callable
+from typing import Tuple
 
 from renode_run.defaults import DASHBOARD_LINK
 from renode_run.url_resources import download_to_file, fetch_text, URLResourceError
@@ -117,7 +118,7 @@ class PortablePackage(ABC):
     class UnableToFindVersion(Exception):
         pass
 
-    def extract(self, target_dir_path: Path, direct: bool, force: bool, version_override: str | None = None) -> tuple[Path, str]:
+    def extract(self, target_dir_path: Path, direct: bool, force: bool, version_override: str | None = None) -> Tuple[Path, str]:
         with self as ar:
             name = ar.get_root_dir_name()
             renode_version = version_override
