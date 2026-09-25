@@ -43,7 +43,7 @@ Ubuntu 25.04 (python3.13):
   <<: *common_test
   image: ubuntu:25.04
 
-Check For Trailing Whitespaces:
+Ruff linting check:
   <<: *only_master_and_all_mrs
   <<: *common_linux
   image: debian:trixie
