@@ -66,7 +66,7 @@ def renode_run(renode_path: Path, args: list[str] = [], env: os._Environ[str] | 
         return result
     except PermissionError:
         sys.exit(f"Failed to run Renode!\n"
-                  "File '{str(renode_path)}' is missing necessary 'read and run' permisions.")
+                  "File '{str(renode_path)}' is missing necessary 'read and run' permissions.")
     except Exception as e:
         sys.exit(f"Failed to run Renode!\n{e}")
 
@@ -130,8 +130,8 @@ def install_command(source: Annotated[str, typer.Argument(help='specifies Renode
     except package_type().UnableToFindVersion:
         sys.exit("Package does not contain version information. Please provide the version name using '--version-override' option")
     except PermissionError:
-        sys.exit(f"Not authorized to intall Renode package in {target_dir_path}.\n"
-                 f"Please choose a different directory or run renode-run with elevated privilages.")
+        sys.exit(f"Not authorized to install Renode package in {target_dir_path}.\n"
+                 f"Please choose a different directory or run renode-run with elevated privileges.")
     except:
         sys.exit("Unable to extract package. Please make sure the provided source contains a Renode portable package for Your platform")
 
@@ -157,13 +157,13 @@ def default_command(renode_instance: Annotated[str | None, typer.Argument(help='
 
         return
 
-    (default_candidates, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_instance)
+    (default_candidates, unambiguous_match) = get_matching_installed_renode_instances(config_file, renode_instance)
 
     if not default_candidates:
         sys.exit(f"No package identifiable by '{renode_instance}' are installed, exiting")
 
     package_id = 1
-    if not unambiguos_match:
+    if not unambiguous_match:
         choices = []
         for package_path in default_candidates:
             print(f"{package_id}. {str(package_path)}")
@@ -177,7 +177,7 @@ def default_command(renode_instance: Annotated[str | None, typer.Argument(help='
     package_path = default_candidates[package_id - 1]
     config_file.update_default(package_path)
     config_file.save_config()
-    print(f"Package located at {package_path} set as defaults")
+    print(f"Package located at {package_path} set as default")
 
 
 @app.command("remove", help="remove Renode installation")
@@ -189,12 +189,12 @@ def remove_command(renode_instance: Annotated[str, typer.Argument(help='Renode i
 
     config_file = ConfigFile(config_file_path, package_type())
 
-    (packages_to_remove, unambiguos_match) = get_matching_installed_renode_instances(config_file, renode_instance)
+    (packages_to_remove, unambiguous_match) = get_matching_installed_renode_instances(config_file, renode_instance)
 
     if not packages_to_remove:
         sys.exit(f"No package with version '{renode_instance}' installed, exiting")
 
-    if unambiguos_match or remove_all:
+    if unambiguous_match or remove_all:
         for package_path in packages_to_remove:
             config_file.remove_installation(package_path)
 
@@ -287,7 +287,7 @@ def test_command(artifacts_path: artifacts_path_annotation = None,
     python_executable = get_venv_executable(venv_path)
     python_dir = python_executable.parent
     if not Path.exists(python_executable):
-        print(f'Bootstraping new virtual env in {venv_path}')
+        print(f'Bootstrapping new virtual env in {venv_path}')
         requirements_path = renode_dir / 'tests' / 'requirements.txt'
         env_builder = EnvBuilderWithRequirements(clear=True, requirements_path=requirements_path)
         env_builder.create(venv_path)

@@ -107,8 +107,8 @@ def get_matching_installed_renode_instances(config_file: ConfigFile, renode_inst
             instances.append(package_path)
             matched_exact &= exact_match
 
-    unambiguos_match = matched_exact and len(instances) == 1
-    return (instances, unambiguos_match)
+    unambiguous_match = matched_exact and len(instances) == 1
+    return (instances, unambiguous_match)
 
 
 def get_renode(artifacts_dir: Path, try_to_download: bool = True, use_system_renode: bool = True) -> Path:

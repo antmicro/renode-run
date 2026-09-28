@@ -125,7 +125,7 @@ class PortablePackage(ABC):
             if renode_version is None:
                 # This regex searches "<semver>" and "<semver>+<date>git<commit>" version formats
                 # - semver -- Semantic version (e.g. 0.0.0)
-                # - data -- format YYYYMMDD
+                # - date -- format YYYYMMDD
                 # - commit -- consists of 8-9 first characters of commit SHA
                 matched = re.search(r"renode[-_](?P<version>[0-9]+\.[0-9]+\.[0-9]+(?:\+[0-9]{8}git[0-9a-fA-F]{8,9})?)", name)
                 if not matched:

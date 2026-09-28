@@ -45,7 +45,7 @@ def _open_url_resource(url: str, timeout: float = 30.0) -> Generator[tuple[IO[by
     except FileNotFoundError as e:
         raise URLResourceError(f"Local file '{url}' does not exist.") from e
     except IsADirectoryError as e:
-        raise URLResourceError(f"Provided URL '{url}' points to a directory istead of a file.") from e
+        raise URLResourceError(f"Provided URL '{url}' points to a directory instead of a file.") from e
 
     try:
         yield stream, local_path

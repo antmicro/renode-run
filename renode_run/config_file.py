@@ -187,8 +187,8 @@ class ConfigFile:
         try:
             rmtree(path)
         except PermissionError:
-            sys.exit("Administrative privilages are necessary to delete this installation.\n"
-                     "Please run the application with admin privilages and try again.")
+            sys.exit("Administrative privileges are necessary to delete this installation.\n"
+                     "Please run the application with admin privileges and try again.")
 
         self.get_renode_installs().pop(str(path))
         self._check_default()
